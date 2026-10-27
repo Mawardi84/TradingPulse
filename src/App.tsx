@@ -5,6 +5,9 @@ import { useRealTimeMarket } from './hooks/useRealTimeMarket';
 import { TradingChartCanvas } from './components/TradingChartCanvas';
 import { TechnicalAnalysisPanel } from './components/TechnicalAnalysisPanel';
 import { FundamentalAnalysisView } from './components/FundamentalAnalysisView';
+import { FundamentalSummaryPanel } from './components/FundamentalSummaryPanel';
+import { MarketSentimentPanel } from './components/MarketSentimentPanel';
+import { MultiAssetListPanel } from './components/MultiAssetListPanel';
 import { EconomicCalendarView } from './components/EconomicCalendarView';
 import { MarketNewsView } from './components/MarketNewsView';
 import { ScreenerView } from './components/ScreenerView';
@@ -13,12 +16,31 @@ import { MacroFormulasView } from './components/MacroFormulasView';
 import { WatchlistTickerBar } from './components/WatchlistTickerBar';
 import { ChartTradingWidget } from './components/ChartTradingWidget';
 import { TradingChatPanel } from './components/TradingChatPanel';
-import { Radio, Pause, Play, RefreshCw, Zap } from 'lucide-react';
+import {
+  Radio,
+  Pause,
+  Play,
+  RefreshCw,
+  Zap,
+  Building2,
+  Flame,
+  Layers,
+  BarChart2,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 export function App() {
   const [activeSection, setActiveSection] = useState<
     'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot'
   >('chart');
+
+  // Chart view side tab selection
+  const [chartSideTab, setChartSideTab] = useState<
+    'technicals' | 'fundamentals' | 'sentiment' | 'multiasset' | 'chat'
+  >('technicals');
+  const [showMultiAssetDrawer, setShowMultiAssetDrawer] = useState<boolean>(false);
 
   // Real-time market state hook with live Binance WS & Interbank rates
   const {
@@ -165,7 +187,135 @@ export function App() {
             connectionStatus={connectionStatus}
           />
 
+          {/* Quick Glances & Multi-Asset Drawer Action Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-[#111722] border border-slate-800 rounded-lg text-xs font-mono">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowMultiAssetDrawer((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold transition-all ${
+                  showMultiAssetDrawer
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-[#0B0F17] hover:bg-slate-800 text-slate-200 border border-slate-800'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 text-blue-400" />
+                <span>
+                  {showMultiAssetDrawer
+                    ? 'Tutup Daftar Multi-Aset'
+                    : `Daftar Multi-Aset (${instruments.length} Aset)`}
+                </span>
+                {showMultiAssetDrawer ? (
+                  <ChevronUp className="w-3.5 h-3.5 ml-0.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+                )}
+              </button>
+
+              {/* Quick Sentiment Barometer Pill */}
+              <button
+                type="button"
+                onClick={() => setChartSideTab('sentiment')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#0B0F17] border border-slate-800 hover:border-slate-700 transition-colors text-left"
+                title="Buka panel Sentimen Pasar"
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-slate-400">Sentimen Pasar:</span>
+                <span className="font-bold text-emerald-400">
+                  {selectedInstrument.changePercent24h >= 0 ? 'Bullish (64%)' : 'Bearish (56%)'}
+                </span>
+                <span className="text-slate-500 text-[10px] hidden sm:inline">• Fear & Greed 68</span>
+              </button>
+
+              {/* Quick Fundamental Pill */}
+              <button
+                type="button"
+                onClick={() => setChartSideTab('fundamentals')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#0B0F17] border border-slate-800 hover:border-slate-700 transition-colors text-left"
+                title="Buka ringkasan Analisis Fundamental"
+              >
+                <Building2 className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-slate-400">Fundamental:</span>
+                <span className="font-bold text-indigo-300">
+                  {selectedInstrument.fundamentals.analystConsensus}
+                </span>
+                <span className="text-emerald-400 font-semibold text-[11px] hidden md:inline">
+                  (Target $
+                  {selectedInstrument.fundamentals.analystTargetPrice >= 1000
+                    ? selectedInstrument.fundamentals.analystTargetPrice.toLocaleString()
+                    : selectedInstrument.fundamentals.analystTargetPrice.toFixed(
+                        selectedInstrument.decimals
+                      )}
+                  )
+                </span>
+              </button>
+            </div>
+
+            {/* Quick Right Side Tab Selector Shortcut */}
+            <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-md border border-slate-800 text-[11px]">
+              <span className="text-slate-400 text-[10px] px-1 hidden lg:inline">Panel:</span>
+              <button
+                type="button"
+                onClick={() => setChartSideTab('technicals')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  chartSideTab === 'technicals' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Teknikal
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartSideTab('fundamentals')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  chartSideTab === 'fundamentals' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Fundamental
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartSideTab('sentiment')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  chartSideTab === 'sentiment' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Sentimen
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartSideTab('multiasset')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  chartSideTab === 'multiasset' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Multi-Aset
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartSideTab('chat')}
+                className={`px-2 py-0.5 rounded transition-colors ${
+                  chartSideTab === 'chat' ? 'bg-blue-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Chat
+              </button>
+            </div>
+          </div>
+
+          {/* Full Multi-Asset Drawer View (when expanded) */}
+          {showMultiAssetDrawer && (
+            <MultiAssetListPanel
+              instruments={instruments}
+              selectedSymbol={selectedSymbol}
+              onSelectSymbol={(sym) => {
+                setSelectedSymbol(sym);
+              }}
+              recentTicks={recentTicks}
+            />
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left 2 Cols: Main Chart Canvas & Trading Execution Widget */}
             <div className="lg:col-span-2 space-y-4">
               <TradingChartCanvas
                 instrument={selectedInstrument}
@@ -182,14 +332,131 @@ export function App() {
               />
             </div>
 
+            {/* Right 1 Col: Analysis Panels (Technicals, Fundamentals, Sentiment, Multi-Asset, Chat) */}
             <div className="space-y-4">
-              <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
+              {/* Right Panel Navigation Bar */}
+              <div className="flex items-center gap-1 p-1 bg-[#111722] border border-slate-800 rounded-lg overflow-x-auto text-xs font-semibold scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setChartSideTab('technicals')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'technicals'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  <span>Teknikal</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartSideTab('fundamentals')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'fundamentals'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Fundamental</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartSideTab('sentiment')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'sentiment'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Sentimen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartSideTab('multiasset')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'multiasset'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Multi-Aset</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartSideTab('chat')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'chat'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Chat</span>
+                </button>
+              </div>
 
-              {/* Quick Chat Trading Preview */}
-              <TradingChatPanel
-                currentInstrument={selectedInstrument}
-                onJumpToAsset={handleJumpToChart}
-              />
+              {/* Active Tab Panel Rendering */}
+              {chartSideTab === 'technicals' && (
+                <div className="space-y-4">
+                  <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
+                  {/* Co-located Market Sentiment preview under technicals */}
+                  <MarketSentimentPanel
+                    instrument={selectedInstrument}
+                    news={INITIAL_MARKET_NEWS}
+                    onJumpToAsset={handleJumpToChart}
+                  />
+                </div>
+              )}
+
+              {chartSideTab === 'fundamentals' && (
+                <div className="space-y-4">
+                  <FundamentalSummaryPanel
+                    instrument={selectedInstrument}
+                    onOpenFullFundamental={handleJumpToFundamental}
+                  />
+                  {/* Co-located Technical summary preview */}
+                  <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
+                </div>
+              )}
+
+              {chartSideTab === 'sentiment' && (
+                <div className="space-y-4">
+                  <MarketSentimentPanel
+                    instrument={selectedInstrument}
+                    news={INITIAL_MARKET_NEWS}
+                    onJumpToAsset={handleJumpToChart}
+                  />
+                  {/* Co-located Fundamental summary preview */}
+                  <FundamentalSummaryPanel
+                    instrument={selectedInstrument}
+                    onOpenFullFundamental={handleJumpToFundamental}
+                  />
+                </div>
+              )}
+
+              {chartSideTab === 'multiasset' && (
+                <div className="space-y-4">
+                  <MultiAssetListPanel
+                    instruments={instruments}
+                    selectedSymbol={selectedSymbol}
+                    onSelectSymbol={setSelectedSymbol}
+                    recentTicks={recentTicks}
+                  />
+                </div>
+              )}
+
+              {chartSideTab === 'chat' && (
+                <div className="space-y-4">
+                  <TradingChatPanel
+                    currentInstrument={selectedInstrument}
+                    onJumpToAsset={handleJumpToChart}
+                  />
+                  <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
+                </div>
+              )}
             </div>
           </div>
         </div>

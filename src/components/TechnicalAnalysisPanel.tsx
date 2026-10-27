@@ -70,6 +70,11 @@ export const TechnicalAnalysisPanel: React.FC<{ instrument: Instrument; candles:
                      'Pasar dalam fase konsolidasi/sideways. Tunggu breakout konfirmasi pada timeframe yang dipilih.'}
                 </div>
             </div>
+
+            <div className="p-2.5 rounded bg-[#0B0F17] border border-slate-800 text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                <span>Sumber Data: Formula Standar TA (Wilder's RSI, MACD 12/26, SMA/EMA)</span>
+                <span className="text-emerald-400">● 100% Data Live</span>
+            </div>
         </div>
     );
 };

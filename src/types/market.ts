@@ -64,6 +64,8 @@ export interface FundamentalData {
   keyCatalysts: string[];
   keyRisks: string[];
   quarterlyFinancials: QuarterlyFinancial[];
+  filingSource?: string;
+  analystConsensusSource?: string;
 }
 
 export interface Instrument {
@@ -83,6 +85,9 @@ export interface Instrument {
   binanceSymbol?: string;
   forexPair?: { base: string; quote: string };
   fundamentals: FundamentalData;
+  dataSource?: string;
+  primarySourceUrl?: string;
+  lastVerifiedAt?: string;
 }
 
 export type SignalAction = 'Buy' | 'Sell' | 'Neutral';
@@ -160,6 +165,9 @@ export interface SupplyDemandZone {
   bottom: number;
   startIndex: number;
   endIndex: number;
+  strength?: 'Fresh' | 'Tested' | 'Strong';
+  label?: string;
+  testCount?: number;
 }
 
 export type DrawingTool = 'crosshair' | 'trendline' | 'horizontal' | 'fib' | 'cursor';

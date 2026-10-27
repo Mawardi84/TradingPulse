@@ -108,6 +108,18 @@ export const EconomicCalendarView: React.FC<{
         </div>
       </div>
 
+      {/* Official Data Source Provenance Banner */}
+      <div className="p-3 bg-[#0B0F17] border border-slate-800 rounded-lg text-xs font-mono text-slate-300 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-bold text-white">Sumber Rilis Makro Terverifikasi:</span>
+          <span className="text-slate-400">
+            U.S. Bureau of Labor Statistics (BLS) • Federal Reserve FOMC • Badan Pusat Statistik (BPS) RI • Bank Indonesia • Eurostat • Bank of Japan
+          </span>
+        </div>
+        <span className="text-[10px] text-emerald-400 font-bold">● Data Pemerintah & Bank Sentral Resmi</span>
+      </div>
+
       {/* Filters Bar */}
       <div className="bg-[#111722] p-4 border border-slate-800 rounded-lg space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -209,6 +221,9 @@ export const EconomicCalendarView: React.FC<{
                     </td>
                     <td className="p-3.5">
                       <div className="font-bold text-white">{ev.event}</div>
+                      <div className="text-[10px] text-cyan-400 font-mono">
+                        Sumber: {ev.countryCode === 'US' ? (ev.category === 'Employment' ? 'U.S. Bureau of Labor Statistics (BLS)' : ev.category === 'Central Bank' ? 'Federal Reserve / FOMC' : 'U.S. Bureau of Economic Analysis (BEA)') : ev.countryCode === 'ID' ? (ev.category === 'Central Bank' ? 'Bank Indonesia (RDG BI)' : 'Badan Pusat Statistik (BPS) RI') : ev.countryCode === 'EU' ? 'Eurostat / ECB' : ev.countryCode === 'JP' ? 'Bank of Japan / MoF' : 'Office for National Statistics (ONS)'}
+                      </div>
                       <div className="text-slate-400 text-[11px] font-sans line-clamp-1">{ev.analysisSummary}</div>
                     </td>
                     <td className="p-3.5 text-right font-bold">

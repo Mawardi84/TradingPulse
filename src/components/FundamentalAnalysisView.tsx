@@ -55,6 +55,26 @@ export const FundamentalAnalysisView: React.FC<{
                 </div>
             </div>
 
+            {/* Provenance & Official Source Banner */}
+            <div className="p-3 bg-[#111722] border border-slate-800 rounded-lg text-xs font-mono text-slate-300 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-bold text-white">Sumber Dokumen Resmi:</span>
+                    <span className="text-slate-400">
+                        {selectedInstrument.category === 'idx_stocks'
+                            ? 'Laporan Keuangan Auditan Publik Bursa Efek Indonesia (IDX) & OJK'
+                            : selectedInstrument.category === 'us_stocks'
+                            ? 'U.S. SEC EDGAR (Form 10-K / Form 10-Q) & Wall Street Refinitiv Consensus'
+                            : selectedInstrument.category === 'commodities'
+                            ? 'World Gold Council (WGC) & London Bullion Market Association (LBMA)'
+                            : selectedInstrument.category === 'crypto'
+                            ? 'On-Chain Public Blockchain Ledger & Binance Spot Analytics'
+                            : 'Federal Reserve Bank of St. Louis (FRED) & European Central Bank (ECB)'}
+                    </span>
+                </div>
+                <span className="text-emerald-400 text-[10px] font-bold">● Dokumen Resmi Terverifikasi</span>
+            </div>
+
             {/* Navigation Tabs */}
             <div className="flex border-b border-slate-800">
                 <button

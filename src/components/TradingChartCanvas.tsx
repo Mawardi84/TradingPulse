@@ -323,7 +323,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
                 : 'bg-[#0B0F17] border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            {showSD ? 'S&D Zones: AKTIF' : 'S&D Zones: OFF'}
+            {showSD ? `S&D Zones: AKTIF (${zones.length})` : 'S&D Zones: OFF'}
           </button>
           <button
             type="button"
@@ -575,29 +575,93 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             );
           })}
 
-          {/* Supply & Demand Zones Overlay */}
-          {showSD && zones.map((z) => {
-            const xStart = indexToX(Math.max(0, z.startIndex - offset));
-            const xEnd = indexToX(Math.min(displayCandles.length - 1, z.endIndex - offset));
-            const yTop = priceToY(z.top);
-            const yBottom = priceToY(z.bottom);
-            
-            if (xStart > width - padRight || xEnd < padLeft) return null;
-            
-            return (
-              <rect 
-                key={z.id} 
-                x={xStart} 
-                y={Math.min(yTop, yBottom)} 
-                width={Math.max(1, xEnd - xStart)} 
-                height={Math.max(1, Math.abs(yBottom - yTop))} 
-                fill={z.type === 'supply' ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.2)'} 
-                stroke={z.type === 'supply' ? 'rgb(244, 63, 94)' : 'rgb(16, 185, 129)'} 
-                strokeWidth="1"
-                pointerEvents="none"
-              />
-            );
-          })}
+          {/* Supply & Demand Zones Overlay (Clean Institutional SMC - Anti-Numpuk) */}
+          {showSD &&
+            zones.map((z) => {
+              const isSupply = z.type === 'supply';
+              const xStart = Math.max(padLeft, indexToX(Math.max(0, z.startIndex - offset)));
+              const xEnd = width - padRight;
+              const yTop = priceToY(z.top);
+              const yBottom = priceToY(z.bottom);
+              const boxY = Math.min(yTop, yBottom);
+              const boxH = Math.max(3, Math.abs(yBottom - yTop));
+
+              if (boxY > padTop + plotHeight || boxY + boxH < padTop) return null;
+
+              const strokeColor = isSupply ? '#F43F5E' : '#10B981';
+              const fillColor = isSupply ? 'rgba(244, 63, 94, 0.09)' : 'rgba(16, 185, 129, 0.09)';
+              const badgeBg = isSupply ? 'rgba(69, 10, 10, 0.85)' : 'rgba(2, 44, 34, 0.85)';
+              const badgeBorder = isSupply ? 'rgba(244, 63, 94, 0.5)' : 'rgba(16, 185, 129, 0.5)';
+              const textColor = isSupply ? '#FDA4AF' : '#86EFAC';
+              const labelText = `${isSupply ? 'SUPPLY' : 'DEMAND'}: ${z.bottom.toFixed(instrument.decimals)} - ${z.top.toFixed(instrument.decimals)}${z.strength ? ` · ${z.strength}` : ''}`;
+              const badgeWidth = Math.min(220, Math.max(120, labelText.length * 7));
+
+              return (
+                <g key={z.id} pointerEvents="none">
+                  {/* Subtle translucent zone fill */}
+                  <rect
+                    x={xStart}
+                    y={boxY}
+                    width={Math.max(10, xEnd - xStart)}
+                    height={boxH}
+                    fill={fillColor}
+                  />
+                  {/* Upper zone boundary line */}
+                  <line
+                    x1={xStart}
+                    y1={yTop}
+                    x2={xEnd}
+                    y2={yTop}
+                    stroke={strokeColor}
+                    strokeDasharray="4 3"
+                    strokeWidth="1.2"
+                    opacity="0.85"
+                  />
+                  {/* Lower zone boundary line */}
+                  <line
+                    x1={xStart}
+                    y1={yBottom}
+                    x2={xEnd}
+                    y2={yBottom}
+                    stroke={strokeColor}
+                    strokeDasharray="4 3"
+                    strokeWidth="1.2"
+                    opacity="0.85"
+                  />
+                  {/* Formation candle anchor pin */}
+                  <line
+                    x1={xStart}
+                    y1={boxY}
+                    x2={xStart}
+                    y2={boxY + boxH}
+                    stroke={strokeColor}
+                    strokeWidth="2"
+                    opacity="0.9"
+                  />
+                  {/* Clean readable SMC zone badge tag */}
+                  <rect
+                    x={Math.max(padLeft + 4, Math.min(xStart + 4, xEnd - badgeWidth - 4))}
+                    y={Math.max(padTop + 2, boxY + 2)}
+                    width={badgeWidth}
+                    height="14"
+                    rx="2"
+                    fill={badgeBg}
+                    stroke={badgeBorder}
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x={Math.max(padLeft + 8, Math.min(xStart + 8, xEnd - badgeWidth))}
+                    y={Math.max(padTop + 2, boxY + 2) + 10}
+                    fill={textColor}
+                    fontSize="8.5"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontWeight="600"
+                  >
+                    {labelText}
+                  </text>
+                </g>
+              );
+            })}
 
           {/* Volume Histogram */}
           {displayCandles.map((c, idx) => {

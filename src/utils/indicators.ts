@@ -402,33 +402,177 @@ export function calculateDCFValuation(input: DCFInput): DCFOutput {
 }
 
 export function findSupplyDemandZones(candles: Candle[]): SupplyDemandZone[] {
-  const zones: SupplyDemandZone[] = [];
-  if (candles.length < 20) return zones;
+  if (candles.length < 25) return [];
 
-  for (let i = 10; i < candles.length - 10; i++) {
-    const isLocalHigh = candles[i].high > candles[i - 5].high && candles[i].high > candles[i + 5].high;
-    const isLocalLow = candles[i].low < candles[i - 5].low && candles[i].low < candles[i + 5].low;
+  const lastCandle = candles[candles.length - 1];
+  const currentPrice = lastCandle.close;
 
-    if (isLocalHigh) {
-      zones.push({
+  // 1. Calculate Average True Range (ATR-like) to detect genuine impulsive expansion
+  let totalRange = 0;
+  for (let i = 1; i < candles.length; i++) {
+    const tr = Math.max(
+      candles[i].high - candles[i].low,
+      Math.abs(candles[i].high - candles[i - 1].close),
+      Math.abs(candles[i].low - candles[i - 1].close)
+    );
+    totalRange += tr;
+  }
+  const avgRange = Math.max(0.0001, totalRange / (candles.length - 1));
+
+  // 2. Identify significant Swing Highs and Swing Lows with multi-bar fractal radius
+  const rawSupplyZones: SupplyDemandZone[] = [];
+  const rawDemandZones: SupplyDemandZone[] = [];
+  const pivotRadius = 4;
+
+  for (let i = pivotRadius; i < candles.length - pivotRadius; i++) {
+    const c = candles[i];
+    let isSwingHigh = true;
+    let isSwingLow = true;
+
+    for (let offset = 1; offset <= pivotRadius; offset++) {
+      if (candles[i - offset].high >= c.high || candles[i + offset].high > c.high) {
+        isSwingHigh = false;
+      }
+      if (candles[i - offset].low <= c.low || candles[i + offset].low < c.low) {
+        isSwingLow = false;
+      }
+    }
+
+    // Displacement check: subsequent candles must show strong departure
+    const subsequentMoveDown = c.high - Math.min(...candles.slice(i + 1, Math.min(candles.length, i + 6)).map((k) => k.low));
+    const subsequentMoveUp = Math.max(...candles.slice(i + 1, Math.min(candles.length, i + 6)).map((k) => k.high)) - c.low;
+
+    if (isSwingHigh && subsequentMoveDown >= avgRange * 1.0) {
+      const bodyTop = Math.max(c.open, c.close);
+      const zoneBottom = Math.max(c.low, Math.min(bodyTop, c.high - avgRange * 0.45));
+      rawSupplyZones.push({
         id: `supply-${i}`,
         type: 'supply',
-        top: candles[i].high,
-        bottom: candles[i].high * 0.995,
-        startIndex: i - 2,
-        endIndex: i + 2,
+        top: c.high,
+        bottom: zoneBottom,
+        startIndex: i,
+        endIndex: candles.length - 1,
+        testCount: 0,
+        strength: 'Fresh',
       });
-    } else if (isLocalLow) {
-      zones.push({
+    }
+
+    if (isSwingLow && subsequentMoveUp >= avgRange * 1.0) {
+      const bodyBottom = Math.min(c.open, c.close);
+      const zoneTop = Math.min(c.high, Math.max(bodyBottom, c.low + avgRange * 0.45));
+      rawDemandZones.push({
         id: `demand-${i}`,
         type: 'demand',
-        top: candles[i].low * 1.005,
-        bottom: candles[i].low,
-        startIndex: i - 2,
-        endIndex: i + 2,
+        top: zoneTop,
+        bottom: c.low,
+        startIndex: i,
+        endIndex: candles.length - 1,
+        testCount: 0,
+        strength: 'Fresh',
       });
     }
   }
-  return zones;
+
+  // 3. Test & Mitigation Check: Filter out broken/absorbed zones
+  const activeSupplyZones: SupplyDemandZone[] = [];
+  for (const z of rawSupplyZones) {
+    let broken = false;
+    let touches = 0;
+    for (let j = z.startIndex + pivotRadius + 1; j < candles.length; j++) {
+      const c = candles[j];
+      // Decisive breach above the supply zone invalidates it
+      if (c.close > z.top) {
+        broken = true;
+        break;
+      }
+      // Wick penetration inside zone
+      if (c.high >= z.bottom && c.high <= z.top) {
+        touches++;
+      }
+    }
+
+    if (!broken && touches <= 3 && z.top > currentPrice * 0.995) {
+      z.testCount = touches;
+      z.strength = touches === 0 ? 'Fresh' : 'Tested';
+      activeSupplyZones.push(z);
+    }
+  }
+
+  const activeDemandZones: SupplyDemandZone[] = [];
+  for (const z of rawDemandZones) {
+    let broken = false;
+    let touches = 0;
+    for (let j = z.startIndex + pivotRadius + 1; j < candles.length; j++) {
+      const c = candles[j];
+      // Decisive breach below the demand zone invalidates it
+      if (c.close < z.bottom) {
+        broken = true;
+        break;
+      }
+      // Wick penetration inside zone
+      if (c.low <= z.top && c.low >= z.bottom) {
+        touches++;
+      }
+    }
+
+    if (!broken && touches <= 3 && z.bottom < currentPrice * 1.005) {
+      z.testCount = touches;
+      z.strength = touches === 0 ? 'Fresh' : 'Tested';
+      activeDemandZones.push(z);
+    }
+  }
+
+  // 4. Overlap Consolidation: Merge overlapping zones into clean single institutional bands
+  function mergeOverlappingZones(list: SupplyDemandZone[]): SupplyDemandZone[] {
+    if (list.length === 0) return [];
+    const sorted = [...list].sort((a, b) => a.bottom - b.bottom);
+    const merged: SupplyDemandZone[] = [];
+
+    for (const zone of sorted) {
+      if (merged.length === 0) {
+        merged.push({ ...zone });
+        continue;
+      }
+      const prev = merged[merged.length - 1];
+      const buffer = (prev.top - prev.bottom) * 0.4;
+      const isOverlapping = zone.bottom <= prev.top + buffer;
+
+      if (isOverlapping) {
+        // Merge into single non-overlapping zone
+        prev.top = Math.max(prev.top, zone.top);
+        prev.bottom = Math.min(prev.bottom, zone.bottom);
+        prev.startIndex = Math.min(prev.startIndex, zone.startIndex);
+        prev.testCount = Math.max(prev.testCount || 0, zone.testCount || 0);
+        prev.strength = prev.testCount === 0 ? 'Fresh' : 'Strong';
+      } else {
+        merged.push({ ...zone });
+      }
+    }
+    return merged;
+  }
+
+  const mergedSupply = mergeOverlappingZones(activeSupplyZones);
+  const mergedDemand = mergeOverlappingZones(activeDemandZones);
+
+  // 5. Select only top 2 most immediate non-overlapping zones for each side
+  const cleanSupply = mergedSupply
+    .filter((z) => z.bottom >= currentPrice * 0.9995)
+    .sort((a, b) => a.bottom - b.bottom)
+    .slice(0, 2)
+    .map((z, idx) => ({
+      ...z,
+      label: idx === 0 ? 'Supply Minor / Dekat' : 'Supply Institusional Utama',
+    }));
+
+  const cleanDemand = mergedDemand
+    .filter((z) => z.top <= currentPrice * 1.0005)
+    .sort((a, b) => b.top - a.top)
+    .slice(0, 2)
+    .map((z, idx) => ({
+      ...z,
+      label: idx === 0 ? 'Demand Minor / Dekat' : 'Demand Institusional Utama',
+    }));
+
+  return [...cleanSupply, ...cleanDemand];
 }
 

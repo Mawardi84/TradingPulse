@@ -67,6 +67,50 @@ export async function fetchLiveForexRates(): Promise<Record<string, number>> {
   }
 }
 
+export interface LiveFearAndGreedData {
+  score: number;
+  label: string;
+  previousClose: number;
+  oneWeekAgo: number;
+  oneMonthAgo: number;
+  timestamp: string;
+  source: string;
+}
+
+/**
+ * Fetches real, live market Fear & Greed index from Alternative.me public API
+ */
+export async function fetchLiveFearAndGreed(): Promise<LiveFearAndGreedData | null> {
+  try {
+    const res = await fetch('https://api.alternative.me/fng/?limit=31');
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || !json.data || json.data.length === 0) return null;
+
+    const current = json.data[0];
+    const prev = json.data[1] || current;
+    const weekAgo = json.data[7] || json.data[json.data.length - 1];
+    const monthAgo = json.data[30] || json.data[json.data.length - 1];
+
+    return {
+      score: parseInt(current.value, 10),
+      label: current.value_classification,
+      previousClose: parseInt(prev.value, 10),
+      oneWeekAgo: parseInt(weekAgo.value, 10),
+      oneMonthAgo: parseInt(monthAgo.value, 10),
+      timestamp: new Date(parseInt(current.timestamp, 10) * 1000).toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }) + ' WIB',
+      source: 'Alternative.me Crypto Fear & Greed Index API v2 (Multi-Factor Real Sentiment)',
+    };
+  } catch (err) {
+    console.warn('[MarketFeed] Alternative.me API fetch warning:', err);
+    return null;
+  }
+}
+
 /**
  * Fetches real historical Kline candles directly from Binance Spot API for crypto assets
  */
