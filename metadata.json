@@ -1,0 +1,8 @@
+{
+  "name": "AstraView TradePulse Pro",
+  "description": "Terminal Analisis Multi-Asset & Makro Kuantitatif terpadu dengan Charting S&D, Kalkulator Makro (CPI, PPI, NFP, FOMC, Yield), Screener, dan Bot Trading.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
+
