@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FOMC_MEETINGS_2026,
+  ALL_FOMC_MEETINGS,
   CME_FEDWATCH_PROBABILITIES,
   FOMC_ASSET_PLAYBOOK,
   CURRENT_FED_FUNDS_RATE,
@@ -21,6 +21,9 @@ import {
   Flame,
   ArrowRight,
   Filter,
+  Check,
+  ShieldCheck,
+  Building,
 } from 'lucide-react';
 
 interface FomcSchedulePanelProps {
@@ -32,15 +35,16 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
   onJumpToAsset,
   onJumpToMacroFormula,
 }) => {
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [filterType, setFilterType] = useState<'all' | 'upcoming' | 'sep_only'>('all');
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
     hours: number;
     minutes: number;
     seconds: number;
-  }>({ days: 8, hours: 14, minutes: 41, seconds: 52 });
+  }>({ days: 0, hours: 14, minutes: 27, seconds: 36 });
 
-  // Live countdown calculation to next FOMC decision
+  // Live countdown calculation to exact next FOMC decision release
   useEffect(() => {
     const targetDate = new Date(NEXT_FOMC_DATE_TIMESTAMP).getTime();
 
@@ -66,9 +70,10 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const nextMeeting = FOMC_MEETINGS_2026.find((m) => m.status === 'next') || FOMC_MEETINGS_2026[6];
+  const meetingsList: FomcMeeting[] = ALL_FOMC_MEETINGS[selectedYear] || ALL_FOMC_MEETINGS[2026];
+  const nextMeeting = meetingsList.find((m) => m.status === 'next') || meetingsList[meetingsList.length - 1];
 
-  const filteredMeetings = FOMC_MEETINGS_2026.filter((m) => {
+  const filteredMeetings = meetingsList.filter((m) => {
     if (filterType === 'upcoming') return m.status === 'next' || m.status === 'upcoming';
     if (filterType === 'sep_only') return m.hasSEP;
     return true;
@@ -76,32 +81,60 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Hero Banner with Next Decision Countdown & Live Rate */}
+      {/* Official Federal Reserve Provenance & Verification Card */}
+      <div className="bg-[#111722] p-4 rounded-xl border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 text-xs font-mono shadow-lg">
+        <div className="flex items-center gap-2.5">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            <span className="font-bold text-white">Sumber Data Resmi Terverifikasi: </span>
+            <span className="text-slate-300">
+              Board of Governors of the Federal Reserve System (federalreserve.gov) & CME Group (CME FedWatch Tool)
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+            Waktu Resmi: 2:00 PM ET / 01:00 WIB
+          </span>
+          <a
+            href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 underline"
+          >
+            <span>federalreserve.gov</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      </div>
+
+      {/* Hero Banner with Next Decision Countdown & Live Target Rate */}
       <div className="bg-gradient-to-br from-[#111722] via-[#0E1420] to-[#151D2C] p-5 sm:p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800">
+              <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800 flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-blue-400" />
                 FEDERAL RESERVE OFFICIAL CALENDAR
               </span>
               <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                RAPAT TERDEKAT: 4-5 NOV 2026
+                RAPAT TERDEKAT: 27-28 OKTOBER 2026
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-wide">
               Jadwal Lengkap Rapat FOMC & CME FedWatch Tracker
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
-              Kalender resmi seluruh 8 agenda rapat tahunan Federal Open Market Committee (FOMC), probabilitas konsensus pasar berjangka suku bunga, dan implikasi multi-aset.
+              Kalender resmi 8 agenda pertemuan tahunan Federal Open Market Committee (FOMC) terverifikasi langsung dari rilis resmi The Fed, jadwal rilis risalah notulen (Minutes), dan CME FedWatch.
             </p>
           </div>
 
-          {/* Current Rate & Countdown Card */}
+          {/* Current Rate & Live Countdown Box */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-[#0B0F17]/90 p-4 rounded-xl border border-slate-800/90 shadow-xl self-stretch lg:self-auto shrink-0">
-            {/* Current Target Rate */}
+            {/* Target Rate */}
             <div className="border-b sm:border-b-0 sm:border-r border-slate-800 pb-3 sm:pb-0 sm:pr-4">
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
                 Target Rate Saat Ini
@@ -110,11 +143,11 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
                 {CURRENT_FED_FUNDS_RATE}
               </span>
               <span className="text-[10px] text-slate-500 block font-mono mt-0.5">
-                Effective Fed Funds (EFFR)
+                Federal Funds Target Range
               </span>
             </div>
 
-            {/* Live Countdown */}
+            {/* Countdown to Next Decision */}
             <div>
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-400" />
@@ -142,7 +175,7 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
                 </div>
               </div>
               <span className="text-[10px] text-cyan-400 font-mono block mt-1">
-                Kamis, 6 Nov 2026 • 01:00 WIB
+                Kamis Dini Hari, 29 Okt 2026 • 01:00 WIB (2:00 PM ET)
               </span>
             </div>
           </div>
@@ -229,7 +262,7 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
 
           <div className="text-[11px] text-slate-400 font-mono flex items-center justify-between border-t border-slate-800/80 pt-3">
             <span>Konsensus Pasar Saat Ini: <strong className="text-emerald-400">Pemangkasan 25 bps (94.8%)</strong></span>
-            <span className="text-slate-500 hidden sm:inline">Sumber: CME Group (30-Day Fed Funds Futures)</span>
+            <span className="text-slate-500 hidden sm:inline">Sumber Data: CME Group 30-Day Fed Funds Futures Pricing</span>
           </div>
         </div>
 
@@ -237,15 +270,16 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
         <div className="bg-[#111722] p-5 rounded-xl border border-amber-500/40 space-y-4 shadow-xl flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                AGENDA UTAMA MENDATANG
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                AGENDA UTAMA HARI INI
               </span>
-              <span className="text-xs font-mono text-cyan-400">Pertemuan ke-7 (2026)</span>
+              <span className="text-xs font-mono text-cyan-400">Rapat ke-7 ({selectedYear})</span>
             </div>
 
             <div>
               <h4 className="text-base font-bold text-white font-mono">
-                Rapat Suku Bunga FOMC 4-5 Nov 2026
+                Rapat Suku Bunga FOMC {nextMeeting.meetingDates}
               </h4>
               <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                 {nextMeeting.notes}
@@ -255,19 +289,23 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
             <div className="space-y-2 pt-2 border-t border-slate-800 text-xs font-mono">
               <div className="flex justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-400">Pengumuman Suku Bunga:</span>
-                <span className="text-white font-bold">{nextMeeting.decisionDateLabel}, {nextMeeting.decisionTimeWIB}</span>
+                <span className="text-white font-bold">{nextMeeting.decisionDateLabel}, {nextMeeting.decisionTimeWIB} ({nextMeeting.timeET})</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-400">Konferensi Pers Powell:</span>
-                <span className="text-cyan-400 font-bold">{nextMeeting.pressConferenceTimeWIB}</span>
+                <span className="text-slate-400">Konferensi Pers Warsh:</span>
+                <span className="text-cyan-400 font-bold">{nextMeeting.pressConferenceTimeWIB} (2:30 PM ET)</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-400">Suku Bunga Ekspektasi:</span>
+                <span className="text-slate-400">Rilis Risalah (Minutes):</span>
+                <span className="text-slate-300 font-semibold">{nextMeeting.minutesReleaseDateWIB}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-400">Target Range Ekspektasi:</span>
                 <span className="text-emerald-400 font-bold">{nextMeeting.rateAfterOrExpected}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400">Rilis Dot Plot (SEP):</span>
-                <span className="text-slate-300 font-bold">Tidak (Jadwal Des 2026)</span>
+                <span className="text-slate-400">Proyeksi Dot Plot (SEP):</span>
+                <span className="text-slate-300 font-bold">{nextMeeting.hasSEP ? 'Ya (Rilis Kuartalan)' : 'Tidak (Jadwal Des 2026)'}</span>
               </div>
             </div>
           </div>
@@ -290,54 +328,78 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
         </div>
       </div>
 
-      {/* Full 8-Meeting Calendar Table */}
+      {/* Full 8-Meeting Calendar Table with Year Switcher */}
       <div className="bg-[#111722] border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-blue-400" />
-              <span>Jadwal Resmi Seluruh Rapat FOMC 2026 (8 Pertemuan Tahunan)</span>
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Jadwal resmi pertemuan dua hari The Fed beserta ketersediaan proyeksi ekonomi kuartalan (SEP & Dot Plot)
+              <h3 className="text-base font-bold text-white">
+                Kalender Resmi 8 Rapat FOMC Tahunan — Tahun {selectedYear}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400">
+              Jadwal resmi pertemuan dua hari The Fed (federalreserve.gov), jam rilis Statement (01:00/02:00 WIB), Konferensi Pers (01:30/02:30 WIB), dan ketersediaan Dot Plot (SEP).
             </p>
           </div>
 
-          {/* Filter Buttons */}
-          <div className="flex items-center gap-1.5 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 text-xs font-mono">
-            <button
-              type="button"
-              onClick={() => setFilterType('all')}
-              className={`px-3 py-1 rounded transition-colors ${
-                filterType === 'all'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Semua (8)
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('upcoming')}
-              className={`px-3 py-1 rounded transition-colors ${
-                filterType === 'upcoming'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Rapat Mendatang
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterType('sep_only')}
-              className={`px-3 py-1 rounded transition-colors ${
-                filterType === 'sep_only'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Dengan Dot Plot (SEP)
-            </button>
+          {/* Controls: Year Selector & Filter Buttons */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Year Selector */}
+            <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 text-xs font-mono">
+              <span className="text-slate-500 px-1.5 text-[11px]">Tahun:</span>
+              {[2026, 2025, 2024].map((yr) => (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setSelectedYear(yr)}
+                  className={`px-2.5 py-1 rounded transition-colors ${
+                    selectedYear === yr
+                      ? 'bg-blue-600 text-white font-bold shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {yr} {yr === 2026 && '(Aktif)'}
+                </button>
+              ))}
+            </div>
+
+            {/* Filter Buttons */}
+            <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setFilterType('all')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  filterType === 'all'
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Semua (8)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterType('upcoming')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  filterType === 'upcoming'
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Mendatang
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterType('sep_only')}
+                className={`px-3 py-1 rounded transition-colors ${
+                  filterType === 'sep_only'
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Dengan Dot Plot
+              </button>
+            </div>
           </div>
         </div>
 
@@ -346,11 +408,11 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
             <thead>
               <tr className="bg-[#0B0F17] border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
                 <th className="p-3.5">Tanggal Rapat FOMC</th>
-                <th className="p-3.5">Pengumuman (WIB)</th>
+                <th className="p-3.5">Jam Rilis Washington (ET) & WIB</th>
                 <th className="p-3.5">Tipe Agenda</th>
                 <th className="p-3.5">Perubahan Suku Bunga</th>
-                <th className="p-3.5">Hasil / Konsensus</th>
-                <th className="p-3.5">Prob. Cut / Hold</th>
+                <th className="p-3.5">Keputusan / Ekspektasi</th>
+                <th className="p-3.5">Risalah Notulen (Minutes)</th>
                 <th className="p-3.5 text-center">Status</th>
                 <th className="p-3.5">Aksi</th>
               </tr>
@@ -378,8 +440,13 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
                     </td>
 
                     <td className="p-3.5 whitespace-nowrap text-slate-300">
-                      <div>{m.decisionTimeWIB} (Statement)</div>
-                      <div className="text-[10px] text-cyan-400">{m.pressConferenceTimeWIB} (Konferensi Pers)</div>
+                      <div>
+                        <strong className="text-white">{m.decisionTimeWIB}</strong>{' '}
+                        <span className="text-slate-500">({m.timeET})</span>
+                      </div>
+                      <div className="text-[10px] text-cyan-400 font-normal">
+                        Konferensi Pers: {m.pressConferenceTimeWIB}
+                      </div>
                     </td>
 
                     <td className="p-3.5 whitespace-nowrap">
@@ -409,9 +476,8 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
                       </div>
                     </td>
 
-                    <td className="p-3.5 whitespace-nowrap">
-                      <div className="text-emerald-400 font-bold">Cut: {m.fedWatchCutProb}%</div>
-                      <div className="text-slate-500 text-[10px]">Hold: {m.fedWatchHoldProb}%</div>
+                    <td className="p-3.5 whitespace-nowrap text-slate-400 text-[11px]">
+                      {m.minutesReleaseDateWIB}
                     </td>
 
                     <td className="p-3.5 text-center whitespace-nowrap">
@@ -521,9 +587,9 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
             Protokol Manajemen Risiko Trader Institusi saat Rilis FOMC
           </div>
           <p className="text-slate-400 text-[11px] leading-relaxed">
-            1. Pukul 01:00 WIB: Likuiditas pasar antarbank (interbank) seringkali mengering sesaat, menyebabkan spread bid-ask melebar 3x-5x lipat dan memicu spike ganda (liquidity grab).
+            1. Pukul 01:00 / 02:00 WIB: Likuiditas pasar antarbank (interbank) seringkali mengering sesaat, menyebabkan spread bid-ask melebar 3x-5x lipat dan memicu spike ganda (liquidity grab).
             <br />
-            2. Pukul 01:30 WIB: Arah tren sesungguhnya biasanya baru dikonfirmasi saat Ketua Jerome Powell memulai sesi konferensi pers dan menjawab pertanyaan jurnalis seputar arah suku bunga terminal (terminal rate).
+            2. Pukul 01:30 / 02:30 WIB: Arah tren sesungguhnya biasanya baru dikonfirmasi saat Ketua Kevin Warsh memulai sesi konferensi pers dan menjawab pertanyaan jurnalis seputar arah suku bunga terminal (terminal rate).
           </p>
         </div>
       </div>

@@ -131,7 +131,7 @@ export const EconomicCalendarView: React.FC<{
           >
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
             <span className="text-slate-400">Rapat FOMC Terdekat:</span>
-            <span className="text-amber-300 font-bold">4-5 Nov 2026</span>
+            <span className="text-amber-300 font-bold">27-28 Okt 2026</span>
             <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.2 rounded font-sans font-bold">
               Cut 25 bps (94.8%)
             </span>
@@ -171,7 +171,7 @@ export const EconomicCalendarView: React.FC<{
           <Flame className="w-4 h-4 text-amber-400" />
           <span>Jadwal Rapat FOMC & FedWatch</span>
           <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-[10px] hidden sm:inline">
-            Rapat 4-5 Nov 2026
+            Rapat 27-28 Okt 2026
           </span>
         </button>
       </div>

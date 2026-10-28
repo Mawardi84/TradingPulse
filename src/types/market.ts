@@ -146,10 +146,13 @@ export interface EconomicEvent {
 
 export interface FomcMeeting {
   id: string;
+  year: number;
   meetingDates: string;
   decisionDateLabel: string;
+  timeET: string;
   decisionTimeWIB: string;
   pressConferenceTimeWIB: string;
+  minutesReleaseDateWIB: string;
   hasSEP: boolean; // Summary of Economic Projections (Dot Plot)
   status: 'completed' | 'next' | 'upcoming';
   rateBefore: string;
@@ -157,6 +160,7 @@ export interface FomcMeeting {
   decisionOrExpectation: string;
   fedWatchCutProb: number;
   fedWatchHoldProb: number;
+  officialDocUrl: string;
   notes: string;
   affectedAssets: string[];
 }

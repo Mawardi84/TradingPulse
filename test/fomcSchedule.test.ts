@@ -13,11 +13,14 @@ test('FOMC schedule data contains all 8 annual meetings with valid structure', (
 
   const nextMeetings = FOMC_MEETINGS_2026.filter((m) => m.status === 'next');
   assert.equal(nextMeetings.length, 1, 'There must be exactly one meeting flagged as next');
-  assert.equal(nextMeetings[0].id, 'fomc-2026-11');
-  assert.ok(nextMeetings[0].meetingDates.includes('November'));
+  assert.equal(nextMeetings[0].id, 'fomc-2026-10');
+  assert.ok(nextMeetings[0].meetingDates.includes('Oktober'));
+  assert.ok(nextMeetings[0].timeET.includes('2:00 p.m.'));
 
   for (const m of FOMC_MEETINGS_2026) {
     assert.ok(m.decisionTimeWIB, 'Every meeting should have decisionTimeWIB');
+    assert.ok(m.timeET, 'Every meeting should have official timeET');
+    assert.ok(m.minutesReleaseDateWIB, 'Every meeting should have minutesReleaseDateWIB');
     assert.ok(m.rateBefore, 'Every meeting should have rateBefore');
     assert.ok(m.rateAfterOrExpected, 'Every meeting should have rateAfterOrExpected');
     assert.ok(m.affectedAssets.length > 0, 'Every meeting should list affected assets');
