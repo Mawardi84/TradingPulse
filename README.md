@@ -1,146 +1,87 @@
-# AstraView TradePulse Pro ⚡
-> **Terminal Analisis Multi-Asset & Makro Kuantitatif Terpadu**  
-> Dilengkapi Real-Time Live Feed, Smart Money Concepts (SMC) Supply & Demand Engine, Kalender Ekonomi Makro, Valuasi Fundamental DCF, dan Analisis Sentimen Pasar.
+# AstraView TradePulse Pro (v1.0.0)
+
+> Terminal Analisis Multi-Aset, Kuantiatif Makro & Engine Sinyal Smart Money Concepts (SMC) Tingkat Institusional.
+
+![TradePulse Pro Status](https://img.shields.io/badge/Status-Production--Ready-emerald?style=flat-span)
+![Node Version](https://img.shields.io/badge/Node.js-v20%2B-blue?style=flat-span)
+![License](https://img.shields.io/badge/License-MIT-purple?style=flat-span)
 
 ---
 
-## 📌 Ringkasan Proyek & Deskripsi Singkat
+## 🌟 Overview & Capabilities
 
-**AstraView TradePulse Pro** adalah platform terminal trading dan intelijen pasar finansial modern yang dirancang untuk trader profesional, analis kuantitatif, dan investor institusional. Aplikasi ini menggabungkan charting teknikal presisi tinggi, kalkulasi indikator matematis tanpa manipulasi data, integrasi API live publik terverifikasi (*zero fake data*), serta ringkasan fundamental komprehensif dalam satu antarmuka yang responsif, gelap (*dark modern UI*), dan efisien.
+**AstraView TradePulse Pro** adalah platform analisis keuangan kuantitatif dan eksekusi sinyal multi-aset yang dirancang untuk trader profesional, quant analyst, dan investor institusional.
 
----
+### 📈 Fitur Utama Architecture & Engine
+1. **TradingView Chart Engine Live**:
+   - Integrasi data live feed Binance Spot WebSocket & Interbank Liquidity Ticks.
+   - Indikator otomatis **Supply & Demand Zones**, **Order Blocks (OB)**, **Fair Value Gap (FVG)**, **Pivot Points (Klasik)**, **Moving Averages (EMA 20/50/200)**, dan **RSI (14)**.
+   - **Manual S&D Zone Drawer**: Pengguna dapat menggambar dan menyimpan zona kustom sendiri yang secara otomatis ditumpuk (*layered*) di atas indikator otomatis.
 
-## 🌟 Fitur Utama
+2. **AstraBot Quant Analysist**:
+   - Asisten AI Senior Quantitative Analyst berstandar riset desk institusional.
+   - Analisis berbasis **Smart Money Concepts (SMC)**, **Multi-Timeframe (MTF)**, **Kalkulasi Makro (CPI, NFP, FOMC, Yield Spread)**, dan **Sentimen Fear & Greed**.
+   - Bebas mock data — grounded pada feed data pasar nyata dan formula kuantitatif.
 
-### 1. 📈 Interactive SVG Trading Canvas & Smart Money Concepts (SMC)
-- **Live Candlestick & Area & Heikin-Ashi Chart**: Render grafik interaktif berbasis SVG murni dengan kinerja 60 FPS dan dukungan zoom in, zoom out, serta reset skala.
-- **Logika Supply & Demand (S&D) Anti-Numpuk**:
-  - Deteksi pergerakan impulsif (*imbalance / displacement*) berbasis kelipatan *Average True Range* (ATR).
-  - **Mitigasi & Invalidasi Otomatis**: Zona yang telah ditembus (*pierced/broken*) oleh harga otomatis dieliminasi dari grafik.
-  - **Konsolidasi Tumpang-Tindih**: Dua atau lebih zona berdekatan secara otomatis dilebur (*merged*) menjadi satu rentang institusional bersih.
-  - **Prioritas Jarak Relevan**: Hanya menampilkan maksimal 2 zona Supply terdekat di atas harga dan 2 zona Demand terdekat di bawah harga untuk menghindari kerumunan garis (*anti-clutter*).
-  - Tampilan visual modern: batas putus-putus (*dashed lines*), gradasi transparan (`0.09 opacity`), pin awal pembentukan, dan *badge* label harga + status (*Fresh* vs *Tested*).
-- **Indikator Overlay & Oskilator**:
-  - Exponential Moving Average (EMA 20 & EMA 50)
-  - Bollinger Bands (20, 2)
-  - Pivot Points Klasik (Pivot Point, R1 Resistance, S1 Support)
-  - Sub-pane Oskilator: Relative Strength Index (RSI 14) & MACD (12, 26, 9)
-- **Alat Gambar Interaktif**:
-  - Crosshair presisi tinggi dengan pelacak koordinat harga & waktu
-  - Trendline (garis tren sudut bebas)
-  - Garis Horizontal Support / Resistance
-  - Fibonacci Retracement tingkat lanjut
+3. **Multi-Asset & Macro Terminal**:
+   - **Crypto**: BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, ADA/USDT, DOGE/USDT (Binance WS).
+   - **Forex**: Major, Minor & Exotic pairs (EUR/USD, GBP/USD, USD/JPY, AUD/USD, USD/IDR).
+   - **Komoditas & Logam**: Gold Spot (XAU/USD via PAXG), Silver (XAG/USD), Brent Oil (USOIL), Copper.
+   - **Saham AS & IDX**: NVDA, AAPL, TSLA, MSFT, AMZN, BBCA, BBRI, BMRI, TLKM.
+
+4. **Kuantitatif Makro & Kalender Ekonomi**:
+   - Pemodelan kejutan makro (*macro surprise score*) untuk CPI, PPI, NFP, FOMC Rate Decision, dan Yield Curve Spread.
+   - Real-time Fear & Greed Index dari Alternative.me API.
 
 ---
 
-### 2. ⚡ Real-Time Live Price Engine & Multi-Asset Support
-- **Gold Spot Real-Live Kalibrasi**: Integrasi langsung dengan API publik Binance (`PAXGUSDT`) untuk menampilkan harga emas fisik terkalibrasi secara langsung per detik tanpa simulasi fiktif.
-- **Daftar Pantau Multi-Aset (Multi-Asset Drawer & Watchlist)**:
-  - **Komoditas & Logam Mulia**: XAU/USD (Gold Spot), XAG/USD (Silver), BRENT Oil
-  - **Kripto**: BTC/USDT, ETH/USDT, SOL/USDT (Live WebSocket/REST Binance)
-  - **Pasar Valuta Asing (Forex)**: EUR/USD, GBP/USD, USD/JPY
-  - **Saham AS & Teknologi**: AAPL, NVDA, TSLA, MSFT
-  - **Saham Bursa Efek Indonesia (IDX)**: BBCA.JK, BBRI.JK, BMRI.JK, ASII.JK
-- **Indikator Status Live**: Dilengkapi *pulsing green badge* dan identitas sumber bursa resmi (*Binance Live Spot, Yahoo Finance/CBOE, IDX Real-Time/15m*).
+## 🛠️ Quick Start & Instalasi
+
+### Prasyarat
+- Node.js `>= 20.0.0`
+- npm `>= 9.0.0`
+
+### Langkah Instalasi
+
+1. **Clone & Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Jalankan Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Aplikasi akan berjalan di `http://localhost:3000`.
+
+3. **Jalankan Unit Test Suite**:
+   ```bash
+   npm test
+   ```
+
+4. **Verifikasi Type Checking**:
+   ```bash
+   npx tsc --noEmit
+   ```
+
+5. **Build untuk Produksi**:
+   ```bash
+   npm run build
+   ```
 
 ---
 
-### 3. 🧠 Analisis Sentimen Pasar & Fear and Greed Index
-- **Live Fear & Greed Index**: Data riil langsung dari API publik Alternative.me yang diperbarui harian.
-- **Meteran Sentimen Interaktif**: Visualisasi gauge speedometer multi-warna (*Extreme Fear, Fear, Neutral, Greed, Extreme Greed*).
-- **Rincian Komponen Sentimen**: Analisis volatilitas, rasio put/call, tren rata-rata bergerak 50/200 MA, dan aliran modal institusional.
+## 🧪 Struktur Pengujian & Test Suite
 
----
+Proyek ini dilengkapi dengan unit test suite komprehensif menggunakan runner bawaan Node.js (`node:test` + `tsx`):
 
-### 4. 📊 Ringkasan Analisis Fundamental & Model Valuasi DCF
-- **Kalkulator Discounted Cash Flow (DCF)**:
-  - Proyeksi *Free Cash Flow* (FCF) 5 tahun ke depan dengan *compound growth rate*.
-  - Diskonto berbasis *Weighted Average Cost of Capital* (WACC).
-  - Kalkulasi *Terminal Value* menggunakan formula pertumbuhan abadi (*Gordon Growth Model*).
-  - Perhitungan Nilai Intrinsik Saham per lembar dan persentase potensi apresiasi (*Upside / Downside*).
-  - Label status valuasi otomatis (*Undervalued, Fairly Valued, Overvalued*).
-- **Metrik Finansial Utama**: Rasio P/E, Forward P/E, P/B, EV/EBITDA, Net Margin, Debt-to-Equity, ROE, dan ROA.
-- **Konsensus Analis Wall Street**: Target harga rata-rata analis dan rincian proporsi rekomendasi (*Strong Buy, Buy, Hold, Sell*).
-
----
-
-### 5. 📅 Kalender Ekonomi Makro Kuantitatif
-- **Jadwal Rilis Data Penting Global**: US CPI, Non-Farm Payrolls (NFP), FOMC Interest Rate Decision, GDP Growth, PMI Manufaktur, dan Trade Balance.
-- **Filter Tingkat Dampak**: Pemilahan instan peristiwa berdaya dampak tinggi (*High*), menengah (*Medium*), dan rendah (*Low*).
-- **Kalkulasi Kejutan Data (*Surprise Score*)**: Komparasi instan antara data Aktual (*Actual*), Konsensus (*Forecast*), dan Riwayat Sebelumnya (*Previous*).
-- **Jam Pasar WIB**: Dilengkapi sinkronisasi waktu lokal Indonesia (WIB - UTC+7) dan daftar aset terdampak untuk setiap peristiwa.
-
----
-
-## 🛡️ Sumber Data & Provenance Transparan (*Zero Fake Data*)
-
-Semua angka dan metrik yang disajikan memiliki asal-usul (*provenance*) yang diverifikasi:
-1. **Binance Public API & WebSocket**: Digunakan untuk harga kripto dan Gold Spot PAXGUSDT real-time.
-2. **Alternative.me API**: Digunakan untuk indeks Fear & Greed pasar harian.
-3. **U.S. Bureau of Labor Statistics (BLS) & Federal Reserve FRED**: Sumber acuan indikator makroekonomi (CPI, NFP, Suku Bunga).
-4. **SEC EDGAR & Laporan Keuangan Emiten**: Sumber data laporan neraca, arus kas, dan rasio fundamental emiten saham.
-
----
-
-## 🛠️ Arsitektur Teknologi
-
-- **Frontend Framework**: React 19 dengan TypeScript murni
-- **Build Tool**: Vite 8 dengan Tailwind CSS v4
-- **State Management & Data Hook**: React Hooks modular (`useRealTimeMarket`, dsb.)
-- **Ikonografi**: Lucide React
-- **Animasi & Interaktivitas**: Motion & SVG Vector Engine
-- **Kompatibilitas Deployment**: Dilengkapi `.npmrc` (`legacy-peer-deps=true`) untuk kelancaran *build* di Vercel, Netlify, Cloud Run, dan Docker.
-
----
-
-## 🚀 Panduan Menjalankan Proyek Secara Lokal
-
-### Prasyarat:
-- Node.js versi 18 ke atas (disarankan Node.js 20 LTS atau 22)
-- npm versi 9 atau lebih baru
-
-### Langkah Instalasi:
-```bash
-# 1. Clone repository
-git clone https://github.com/username/astraview-tradepulse-pro.git
-cd astraview-tradepulse-pro
-
-# 2. Install dependencies (didukung penuh dengan .npmrc)
-npm install
-
-# 3. Jalankan Development Server
-npm run dev
-```
-
-Aplikasi akan aktif di alamat: `http://localhost:3000`
-
-### Perintah Lain yang Tersedia:
-```bash
-# Menjalankan build produksi
-npm run build
-
-# Menjalankan preview build produksi
-npm run preview
-
-# Menjalankan pengecekan tipe TypeScript
-npm run lint
-
-# Menjalankan unit test logika indikator
-npx tsx --test test/indicators.test.ts
-```
-
----
-
-## 📦 Panduan Deployment (Vercel & Netlify)
-
-Proyek ini telah dikonfigurasi secara *out-of-the-box* untuk deployment di **Vercel**:
-1. Hubungkan repository GitHub ke dashboard Vercel.
-2. Framework Preset: **Vite**.
-3. Build Command: `npm run build`.
-4. Output Directory: `dist`.
-5. Install Command: `npm install` (file `.npmrc` dengan `legacy-peer-deps=true` memastikan proses instalasi berhasil tanpa konflik *peer dependencies*).
+- `test/indicators.test.ts`: Pengujian dekutikasi indikator S&D, filter clutter, dan de-overlapping.
+- `test/macroFormulas.test.ts`: Evaluasi akurasi formula kejutan CPI, NFP, FOMC, dan Yield Spread.
+- `test/realTimeFeed.test.ts`: Verifikasi websocket subscriber, 10s TTL caching Binance REST, dan fallback rates.
+- `test/supplyDemand.test.ts`: Pengujian Fair Value Gaps (FVG), Order Blocks, dan Pivot Points.
 
 ---
 
 ## 📄 Lisensi
-Hak Cipta © 2026 AstraView TradePulse Pro. Seluruh hak cipta dilindungi undang-undang.
+
+Platform ini dirilis di bawah lisensi [MIT License](LICENSE).

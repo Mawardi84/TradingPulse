@@ -17,6 +17,7 @@ import { WatchlistTickerBar } from './components/WatchlistTickerBar';
 import { ChartTradingWidget } from './components/ChartTradingWidget';
 import { TradingChatPanel } from './components/TradingChatPanel';
 import { MultiTimeframeSetupPanel } from './components/MultiTimeframeSetupPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import {
   Radio,
   Pause,
@@ -58,16 +59,10 @@ export function App() {
     togglePause,
   } = useRealTimeMarket('BTCUSDT', '15m');
 
-  const candlesBySymbol = useMemo(() => {
-    const map: Record<string, Candle[]> = {};
-    instruments.forEach((i) => {
-      map[i.symbol] =
-        i.symbol === selectedSymbol && candles.length > 0
-          ? candles
-          : generateHistoricalCandles(i, timeframe, 60);
-    });
-    return map;
-  }, [instruments, selectedSymbol, candles, timeframe]);
+  const currentCandles = useMemo(() => {
+    if (selectedSymbol && candles.length > 0) return candles;
+    return generateHistoricalCandles(selectedInstrument, timeframe, 60);
+  }, [selectedSymbol, candles, selectedInstrument, timeframe]);
 
   const navItems = [
     { id: 'chart', label: 'Chart & Trading' },
@@ -177,8 +172,9 @@ export function App() {
         </nav>
       </header>
 
-      {/* Chart Section */}
-      {activeSection === 'chart' && (
+      <ErrorBoundary>
+        {/* Chart Section */}
+        {activeSection === 'chart' && (
         <div className="space-y-4">
           {/* Real-time Multi-Asset Watchlist Bar with Live Flash */}
           <WatchlistTickerBar
@@ -431,7 +427,7 @@ export function App() {
                     currentInstrument={selectedInstrument}
                     allInstruments={instruments}
                     candles={candles}
-                    onSelectInstrument={(sym) => setSelectedSymbol(sym)}
+                    onSelectInstrument={(sym: string) => setSelectedSymbol(sym)}
                   />
                 </div>
               )}
@@ -502,7 +498,7 @@ export function App() {
             currentInstrument={selectedInstrument}
             allInstruments={instruments}
             candles={candles}
-            onSelectInstrument={(sym) => {
+            onSelectInstrument={(sym: string) => {
               setSelectedSymbol(sym);
             }}
           />
@@ -571,7 +567,7 @@ export function App() {
       {activeSection === 'screener' && (
         <ScreenerView
           instruments={instruments}
-          candlesBySymbol={candlesBySymbol}
+          candlesBySymbol={{}}
           onJumpToChart={handleJumpToChart}
           onJumpToFundamental={handleJumpToFundamental}
         />
@@ -579,6 +575,7 @@ export function App() {
 
       {/* Bot Manager View */}
       {activeSection === 'bot' && <TradingBotManager />}
+      </ErrorBoundary>
     </div>
   );
 }

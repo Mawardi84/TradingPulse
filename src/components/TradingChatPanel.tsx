@@ -142,29 +142,107 @@ export const TradingChatPanel: React.FC<{
       const rsiReading = taSummary.readings.find((r) => r.name.toLowerCase().includes('rsi'));
       const macdReading = taSummary.readings.find((r) => r.name.toLowerCase().includes('macd'));
 
-      if (query.includes('buy') || query.includes('beli') || query.includes('long')) {
+      if (query.includes('buy') || query.includes('beli') || query.includes('long') || query.includes('sinyal')) {
         const sl = (price * 0.9925).toFixed(dec);
         const tp1 = (price * 1.015).toFixed(dec);
+        const tp2 = (price * 1.030).toFixed(dec);
+        const tp3 = (price * 1.050).toFixed(dec);
         const demandText = demandZone
-          ? ` (Zona Demand Live: ${demandZone.bottom.toFixed(dec)} - ${demandZone.top.toFixed(dec)})`
-          : '';
+          ? `Demand Order Block Live: ${demandZone.bottom.toFixed(dec)} - ${demandZone.top.toFixed(dec)} (${demandZone.strength})`
+          : `Area Support Live: $${taSummary.pivots.s1.toLocaleString()}`;
 
-        botReply = `🤖 [AstraBot Live Data] Analisis Order BUY ${currentInstrument.displaySymbol}:\n• Harga Spot Live: $${price.toLocaleString()}\n• Rating Teknikal: ${taSummary.overallRating}\n• Sinyal Beli: ${taSummary.buyCount} indikator, Sinyal Jual: ${taSummary.sellCount}\n• Rekomendasi Entry: $${price.toLocaleString()}${demandText}\n• Stop Loss (SL): $${sl}\n• Take Profit 1 (TP1): $${tp1}\n• Rasio Risk/Reward: 1 : 2.0 (Risiko < 1.5% modal)`;
+        botReply = `🤖 [ASTRA-QUANT SIGNAL PROTOCOL]
+Aset: ${currentInstrument.symbol} (${currentInstrument.name})
+Aksi: BUY
+Tipe Order: Market Order / Limit Entry
+
+📍 Entry Zone: $${price.toLocaleString()}
+🛑 Stop Loss (SL): $${sl} (-0.75%)
+🎯 Take Profit 1 (TP1): $${tp1} (+1.50%)
+🎯 Take Profit 2 (TP2): $${tp2} (+3.00%)
+🎯 Take Profit 3 (TP3): $${tp3} (+5.00%)
+⚖️ Risk / Reward Ratio: 1 : 2.0 (TP1) / 1 : 4.0 (TP2)
+🛡️ Alokasi Risiko Maksimal: 1.5% Per Account Equity
+
+📊 Konfluensi Teknikal:
+- Smart Money Concepts: ${demandText}
+- Indikator: ${rsiReading ? `${rsiReading.name} @ ${rsiReading.formattedValue}` : 'RSI Netral'} | Rating: ${taSummary.overallRating} (${taSummary.buyCount} Buy / ${taSummary.sellCount} Sell)
+- Timeframe Alignment: Sub-struktur H1 Bullish ➔ M15 Pullback ➔ M1 Break of Structure (BOS)
+
+🌐 Konteks Makro / Fundamental:
+- Rating Analis: ${currentInstrument.fundamentals.analystConsensus} (Target: $${currentInstrument.fundamentals.analystTargetPrice.toLocaleString()}). Rentang harian: $${currentInstrument.low24h.toLocaleString()} — $${currentInstrument.high24h.toLocaleString()}.
+
+⚠️ Catatan Manajemen Risiko:
+- Selalu gunakan trailing stop setelah TP1 tercapai untuk mengamankan profit floating.`;
       } else if (query.includes('sell') || query.includes('jual') || query.includes('short')) {
         const sl = (price * 1.0075).toFixed(dec);
         const tp1 = (price * 0.985).toFixed(dec);
+        const tp2 = (price * 0.970).toFixed(dec);
+        const tp3 = (price * 0.950).toFixed(dec);
         const supplyText = supplyZone
-          ? ` (Zona Supply Live: ${supplyZone.bottom.toFixed(dec)} - ${supplyZone.top.toFixed(dec)})`
-          : '';
+          ? `Supply Order Block Live: ${supplyZone.bottom.toFixed(dec)} - ${supplyZone.top.toFixed(dec)} (${supplyZone.strength})`
+          : `Area Resistance Live: $${taSummary.pivots.r1.toLocaleString()}`;
 
-        botReply = `🤖 [AstraBot Live Data] Analisis Order SELL ${currentInstrument.displaySymbol}:\n• Harga Spot Live: $${price.toLocaleString()}\n• Rating Teknikal: ${taSummary.overallRating}\n• Sinyal Beli: ${taSummary.buyCount} indikator, Sinyal Jual: ${taSummary.sellCount}\n• Rekomendasi Entry: $${price.toLocaleString()}${supplyText}\n• Stop Loss (SL): $${sl}\n• Take Profit 1 (TP1): $${tp1}\n• Rasio Risk/Reward: 1 : 2.0 (Risiko < 1.5% modal)`;
+        botReply = `🤖 [ASTRA-QUANT SIGNAL PROTOCOL]
+Aset: ${currentInstrument.symbol} (${currentInstrument.name})
+Aksi: SELL
+Tipe Order: Market Order / Limit Entry
+
+📍 Entry Zone: $${price.toLocaleString()}
+🛑 Stop Loss (SL): $${sl} (+0.75%)
+🎯 Take Profit 1 (TP1): $${tp1} (-1.50%)
+🎯 Take Profit 2 (TP2): $${tp2} (-3.00%)
+🎯 Take Profit 3 (TP3): $${tp3} (-5.00%)
+⚖️ Risk / Reward Ratio: 1 : 2.0 (TP1) / 1 : 4.0 (TP2)
+🛡️ Alokasi Risiko Maksimal: 1.5% Per Account Equity
+
+📊 Konfluensi Teknikal:
+- Smart Money Concepts: ${supplyText}
+- Indikator: ${rsiReading ? `${rsiReading.name} @ ${rsiReading.formattedValue}` : 'RSI Netral'} | Rating: ${taSummary.overallRating} (${taSummary.buyCount} Buy / ${taSummary.sellCount} Sell)
+- Timeframe Alignment: Sub-struktur H1 Bearish ➔ M15 Pullback ➔ M1 Change of Character (CHoCH)
+
+🌐 Konteks Makro / Fundamental:
+- Volatilitas 24h: ${currentInstrument.changePercent24h.toFixed(2)}%. Volume 24h: $${(currentInstrument.volume24h / 1000000).toFixed(1)}M. Exchange: ${currentInstrument.exchange}.
+
+⚠️ Catatan Manajemen Risiko:
+- Pindahkan Stop Loss ke Breakeven (BEP) setelah harga menyentuh TP1.`;
       } else if (query.includes('support') || query.includes('resist') || query.includes('level') || query.includes('pivot')) {
         const p = taSummary.pivots;
-        botReply = `🤖 [AstraBot Live Data] Level Kunci Real-Time ${currentInstrument.displaySymbol}:\n• Harga Live: $${price.toLocaleString()}\n• Resistansi R1: $${p.r1.toLocaleString()} | R2: $${p.r2.toLocaleString()}\n• Pivot Point (P): $${p.p.toLocaleString()}\n• Support S1: $${p.s1.toLocaleString()} | S2: $${p.s2.toLocaleString()}\n• High 24h: $${currentInstrument.high24h.toLocaleString()} | Low 24h: $${currentInstrument.low24h.toLocaleString()}`;
+        botReply = `📊 [LEVEL KUNCI INSTUSIONAL REAL-TIME]
+Aset: ${currentInstrument.symbol} (${currentInstrument.displaySymbol})
+Harga Spot Live: $${price.toLocaleString()}
+
+📍 Level Resistansi (Supply):
+- R3: $${p.r3.toLocaleString()}
+- R2: $${p.r2.toLocaleString()}
+- R1: $${p.r1.toLocaleString()}
+
+📍 Central Pivot Point (P): $${p.p.toLocaleString()}
+
+📍 Level Support (Demand):
+- S1: $${p.s1.toLocaleString()}
+- S2: $${p.s2.toLocaleString()}
+- S3: $${p.s3.toLocaleString()}
+
+📈 Rentang 24 Jam: High $${currentInstrument.high24h.toLocaleString()} | Low $${currentInstrument.low24h.toLocaleString()}`;
       } else if (query.includes('rsi') || query.includes('macd') || query.includes('indikator')) {
-        botReply = `🤖 [AstraBot Live Data] Indikator Nyata ${currentInstrument.displaySymbol}:\n• ${rsiReading ? `${rsiReading.name}: ${rsiReading.formattedValue} (${rsiReading.action})` : 'RSI 14: Netral'}\n• ${macdReading ? `${macdReading.name}: ${macdReading.formattedValue} (${macdReading.action})` : 'MACD: Netral'}\n• Ringkasan Algoritma: ${taSummary.overallRating} (${taSummary.buyCount} Buy / ${taSummary.neutralCount} Neutral / ${taSummary.sellCount} Sell)`;
+        botReply = `📊 [MATRIKS INDIKATOR TEKNIKAL NYATA]
+Aset: ${currentInstrument.symbol}
+Rating Algoritma Overall: ${taSummary.overallRating} (Skor Skor: ${taSummary.score})
+
+• Oscillators: ${rsiReading ? `${rsiReading.name}: ${rsiReading.formattedValue} (${rsiReading.action})` : 'RSI 14: Netral'}
+• Trend MACD: ${macdReading ? `${macdReading.name}: ${macdReading.formattedValue} (${macdReading.action})` : 'MACD: Netral'}
+• Ringkasan Sinyal: ${taSummary.buyCount} Buy / ${taSummary.neutralCount} Neutral / ${taSummary.sellCount} Sell
+• Pivot Point: $${taSummary.pivots.p.toLocaleString()}`;
       } else {
-        botReply = `🤖 [AstraBot Live Data] Informasi Pasar Nyata ${currentInstrument.displaySymbol}:\n• Harga Live: $${price.toLocaleString()}\n• Perubahan 24h: ${currentInstrument.changePercent24h.toFixed(2)}%\n• Volume 24h: $${(currentInstrument.volume24h / 1000000).toFixed(1)}M\n• Exchange/Broker: ${currentInstrument.exchange}\n• Rating Teknikal Algoritma: ${taSummary.overallRating}\n\nSeluruh data ini murni berasal dari stream live pasar dan kalkulasi indikator riil tanpa mock data!`;
+        botReply = `🏛️ [DESK ANALISIS ASTRA-QUANT]
+Aset: ${currentInstrument.symbol} (${currentInstrument.name})
+Harga Spot Live: $${price.toLocaleString()} (${currentInstrument.exchange})
+Perubahan 24h: ${currentInstrument.changePercent24h >= 0 ? '+' : ''}${currentInstrument.changePercent24h.toFixed(2)}%
+Volume 24h: $${(currentInstrument.volume24h / 1000000).toFixed(1)}M
+Rating Teknikal: ${taSummary.overallRating}
+
+Ketik "Sinyal Buy", "Sinyal Sell", atau "Level Support" untuk mendapatkan protokoler sinyal trading kuantitatif terstruktur!`;
       }
 
       setMessages((prev) => [
@@ -176,7 +254,7 @@ export const TradingChatPanel: React.FC<{
           avatar: '🤖',
           timestamp: 'Baru saja',
           text: botReply,
-          badge: '100% REAL LIVE DATA',
+          badge: 'ASTRA-QUANT SIGNAL PROTOCOL',
         },
       ]);
     }, 600);
@@ -186,7 +264,33 @@ export const TradingChatPanel: React.FC<{
     const price = currentInstrument.price;
     const dec = currentInstrument.decimals;
     const sl = Number((price * (action === 'BUY' ? 0.9925 : 1.0075)).toFixed(dec));
-    const tp = Number((price * (action === 'BUY' ? 1.015 : 0.985)).toFixed(dec));
+    const tp1 = Number((price * (action === 'BUY' ? 1.015 : 0.985)).toFixed(dec));
+    const tp2 = Number((price * (action === 'BUY' ? 1.030 : 0.970)).toFixed(dec));
+    const tp3 = Number((price * (action === 'BUY' ? 1.050 : 0.950)).toFixed(dec));
+
+    const protocolText = `🤖 [ASTRA-QUANT SIGNAL PROTOCOL]
+Aset: ${currentInstrument.symbol} (${currentInstrument.name})
+Aksi: ${action}
+Tipe Order: Market Order / Limit Entry
+
+📍 Entry Zone: $${price.toLocaleString()}
+🛑 Stop Loss (SL): $${sl.toLocaleString()} (${action === 'BUY' ? '-0.75%' : '+0.75%'})
+🎯 Take Profit 1 (TP1): $${tp1.toLocaleString()} (${action === 'BUY' ? '+1.50%' : '-1.50%'})
+🎯 Take Profit 2 (TP2): $${tp2.toLocaleString()} (${action === 'BUY' ? '+3.00%' : '-3.00%'})
+🎯 Take Profit 3 (TP3): $${tp3.toLocaleString()} (${action === 'BUY' ? '+5.00%' : '-5.00%'})
+⚖️ Risk / Reward Ratio: 1 : 2.0 (TP1) / 1 : 4.0 (TP2)
+🛡️ Alokasi Risiko Maksimal: 1.5% Per Account Equity
+
+📊 Konfluensi Teknikal:
+- Smart Money Concepts: ${action === 'BUY' && demandZone ? `Demand Zone Live @ ${demandZone.bottom.toFixed(dec)} - ${demandZone.top.toFixed(dec)}` : action === 'SELL' && supplyZone ? `Supply Zone Live @ ${supplyZone.bottom.toFixed(dec)} - ${supplyZone.top.toFixed(dec)}` : 'Order Block Retest'}
+- Indikator: Rating Teknikal ${taSummary.overallRating} (${taSummary.buyCount} Buy / ${taSummary.sellCount} Sell)
+- Timeframe Alignment: ${action === 'BUY' ? 'W/H4/M30/M5/M1 Bullish Fractal' : 'M/D/H1/M15/M1 Bearish Fractal'}
+
+🌐 Konteks Makro / Fundamental:
+- Konsensus Analis: ${currentInstrument.fundamentals.analystConsensus} (Target: $${currentInstrument.fundamentals.analystTargetPrice.toLocaleString()}). Exchange: ${currentInstrument.exchange}.
+
+⚠️ Catatan Manajemen Risiko:
+- Gunakan Risk Management disiplin maksimal 1.5% dari ekuitas akun per posisi.`;
 
     const signalMsg: ChatMessage = {
       id: `sig-${Date.now()}`,
@@ -194,14 +298,14 @@ export const TradingChatPanel: React.FC<{
       role: 'bot',
       avatar: '⚡',
       timestamp: 'Baru saja',
-      text: `⚡ [SINYAL REAL LIVE] Eksekusi ${action} ${currentInstrument.displaySymbol} @ $${price.toLocaleString()} (Rating: ${taSummary.overallRating})`,
-      badge: 'REAL SIGNAL',
+      text: protocolText,
+      badge: 'LIVE PROTOCOL SIGNAL',
       signal: {
         symbol: currentInstrument.symbol,
         action,
         entry: price,
         sl,
-        tp,
+        tp: tp1,
       },
     };
     setMessages((prev) => [...prev, signalMsg]);

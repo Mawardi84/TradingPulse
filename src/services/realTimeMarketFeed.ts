@@ -33,22 +33,45 @@ export interface MarketTick {
 
 export type TickCallback = (tick: MarketTick) => void;
 
+export interface BinanceTicker {
+  symbol: string;
+  lastPrice: string;
+  priceChange: string;
+  priceChangePercent: string;
+  highPrice: string;
+  lowPrice: string;
+  quoteVolume: string;
+}
+
+const cryptoTickerCache: { data: Record<string, BinanceTicker> | null; timestamp: number } = {
+  data: null,
+  timestamp: 0,
+};
+const CACHE_TTL_MS = 10_000;
+
 /**
- * Fetches genuine live crypto 24hr tickers from Binance REST API
+ * Fetches genuine live crypto 24hr tickers from Binance REST API with 10s caching
  */
-export async function fetchLiveCryptoTickers(): Promise<Record<string, any>> {
+export async function fetchLiveCryptoTickers(): Promise<Record<string, BinanceTicker>> {
+  const now = Date.now();
+  if (cryptoTickerCache.data && now - cryptoTickerCache.timestamp < CACHE_TTL_MS) {
+    return cryptoTickerCache.data;
+  }
+
   try {
     const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-    if (!res.ok) return {};
-    const data = await res.json();
-    const map: Record<string, any> = {};
+    if (!res.ok) return cryptoTickerCache.data || {};
+    const data: BinanceTicker[] = await res.json();
+    const map: Record<string, BinanceTicker> = {};
     for (const item of data) {
       map[item.symbol] = item;
     }
+    cryptoTickerCache.data = map;
+    cryptoTickerCache.timestamp = now;
     return map;
   } catch (err) {
     console.warn('[MarketFeed] Binance REST fetch error, will use WS or fallbacks:', err);
-    return {};
+    return cryptoTickerCache.data || {};
   }
 }
 
@@ -98,11 +121,12 @@ export async function fetchLiveFearAndGreed(): Promise<LiveFearAndGreedData | nu
       previousClose: parseInt(prev.value, 10),
       oneWeekAgo: parseInt(weekAgo.value, 10),
       oneMonthAgo: parseInt(monthAgo.value, 10),
-      timestamp: new Date(parseInt(current.timestamp, 10) * 1000).toLocaleTimeString('id-ID', {
+      timestamp: new Date(parseInt(current.timestamp, 10) * 1000).toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-      }) + ' WIB',
+        timeZoneName: 'short',
+      }),
       source: 'Alternative.me Crypto Fear & Greed Index API v2 (Multi-Factor Real Sentiment)',
     };
   } catch (err) {
@@ -110,6 +134,8 @@ export async function fetchLiveFearAndGreed(): Promise<LiveFearAndGreedData | nu
     return null;
   }
 }
+
+type BinanceKlineTuple = [number, string, string, string, string, string, number, string, number, string, string, string];
 
 /**
  * Fetches real historical Kline candles directly from Binance Spot API for crypto assets
@@ -126,10 +152,10 @@ export async function fetchRealBinanceCandles(
     )}&interval=${interval}&limit=${count}`;
     const res = await fetch(url);
     if (!res.ok) return null;
-    const raw = await res.json();
+    const raw: BinanceKlineTuple[] = await res.json();
     if (!Array.isArray(raw) || raw.length === 0) return null;
 
-    const candles: Candle[] = raw.map((k: any) => ({
+    const candles: Candle[] = raw.map((k) => ({
       time: Math.floor(k[0] / 1000),
       open: parseFloat(k[1]),
       high: parseFloat(k[2]),
@@ -429,3 +455,10 @@ export class RealTimeMarketFeed {
 
 // Global Singleton Instance
 export const marketFeedSingleton = new RealTimeMarketFeed();
+
+if (typeof import.meta !== 'undefined' && import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    marketFeedSingleton.stop();
+  });
+}
+

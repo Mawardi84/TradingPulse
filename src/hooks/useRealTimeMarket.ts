@@ -39,7 +39,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     tickCount: 0,
     lastTickTime: Date.now(),
     lastTickSymbol: initialSymbol,
-    ping: '0.15',
+    ping: '—',
     isPaused: false,
   });
 
