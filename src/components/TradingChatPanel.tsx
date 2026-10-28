@@ -39,6 +39,7 @@ export const TradingChatPanel: React.FC<{
 }> = ({ currentInstrument, candles = [], onJumpToAsset }) => {
   const [activeChannel, setActiveChannel] = useState<'#all-desk' | '#signals' | '#macro-flow'>('#all-desk');
   const [inputText, setInputText] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Calculate real live technical summary & S&D zones from genuine candles
   const taSummary = useMemo(() => {
@@ -117,9 +118,10 @@ export const TradingChatPanel: React.FC<{
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    const rawQuery = inputText.trim();
+    if (!rawQuery) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -127,14 +129,53 @@ export const TradingChatPanel: React.FC<{
       role: 'trader',
       avatar: '👤',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: inputText,
+      text: rawQuery,
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    const query = inputText.toLowerCase();
     setInputText('');
+    setIsAnalyzing(true);
 
-    // AstraBot Quant Response using strictly real live market data
+    const query = rawQuery.toLowerCase();
+
+    // 1. Attempt to query Backend Proxy /api/chat (Server-side Gemini AI)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: rawQuery,
+          currentInstrument,
+          technicalSummary: taSummary,
+          demandZone,
+          supplyZone,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.reply && typeof data.reply === 'string' && data.reply.trim().length > 0) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `bot-${Date.now()}`,
+              sender: 'AstraBot Quant',
+              role: 'bot',
+              avatar: '🤖',
+              timestamp: 'Baru saja',
+              text: data.reply,
+              badge: 'ASTRA-QUANT AI PROXY',
+            },
+          ]);
+          setIsAnalyzing(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('[TradingChatPanel] Backend proxy fetch failed, falling back to local quant engine:', err);
+    }
+
+    // 2. High-speed Algorithmic Fallback Engine (Runs when offline or without Gemini key)
     setTimeout(() => {
       let botReply = '';
       const price = currentInstrument.price;
@@ -257,7 +298,8 @@ Ketik "Sinyal Buy", "Sinyal Sell", atau "Level Support" untuk mendapatkan protok
           badge: 'ASTRA-QUANT SIGNAL PROTOCOL',
         },
       ]);
-    }, 600);
+      setIsAnalyzing(false);
+    }, 400);
   };
 
   const handleQuickSignal = (action: 'BUY' | 'SELL') => {
@@ -433,6 +475,13 @@ Tipe Order: Market Order / Limit Entry
             )}
           </div>
         ))}
+
+        {isAnalyzing && (
+          <div className="flex items-center gap-2 p-3 bg-[#0B0F17] border border-blue-500/20 rounded-lg text-xs font-mono text-blue-300 animate-pulse">
+            <Bot className="w-4 h-4 text-blue-400 animate-spin" />
+            <span>AstraBot Quant sedang memproses data feed live institusional via proxy...</span>
+          </div>
+        )}
         <div ref={chatEndRef} />
       </div>
 
