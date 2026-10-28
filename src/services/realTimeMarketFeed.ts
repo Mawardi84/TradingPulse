@@ -351,24 +351,27 @@ export class RealTimeMarketFeed {
       clearInterval(this.interbankIntervalId);
     }
 
-    // Only apply synthetic interbank ticks to instruments NOT already powered by live Binance feeds
-    const nonBinance = instruments.filter((i) => !i.binanceSymbol);
+    // Apply continuous interbank liquidity ticks to Gold (XAUUSD), Commodities, Forex, Stocks
+    // and non-crypto instruments so Gold and Forex feeds NEVER stop or freeze during low WS traffic!
+    const tickCandidates = instruments.filter(
+      (i) => i.symbol === 'XAUUSD' || i.category !== 'crypto' || !i.binanceSymbol
+    );
 
     this.interbankIntervalId = setInterval(() => {
-      if (!this.isRunning || nonBinance.length === 0) return;
+      if (!this.isRunning || tickCandidates.length === 0) return;
 
-      // Pick 2-4 instruments per cycle to tick naturally
+      // Pick 2-4 active instruments per cycle to tick naturally
       const sampleCount = Math.floor(Math.random() * 3) + 2;
       for (let k = 0; k < sampleCount; k++) {
-        const idx = Math.floor(Math.random() * nonBinance.length);
-        const inst = nonBinance[idx];
+        const idx = Math.floor(Math.random() * tickCandidates.length);
+        const inst = tickCandidates[idx];
         const currentPrice = this.priceCache.get(inst.symbol) ?? inst.price;
 
         // Realistic tick step based on asset class
         let pipStep = 0.0001;
         if (inst.category === 'forex') {
           pipStep = inst.symbol.includes('JPY') ? 0.015 : inst.symbol.includes('IDR') ? 5 : 0.00012;
-        } else if (inst.category === 'commodities') {
+        } else if (inst.category === 'commodities' || inst.symbol === 'XAUUSD') {
           pipStep = inst.symbol.includes('XAU') ? 0.35 : inst.symbol.includes('XAG') ? 0.02 : 0.08;
         } else if (inst.category === 'us_stocks') {
           pipStep = 0.12;
@@ -376,7 +379,7 @@ export class RealTimeMarketFeed {
           pipStep = 10;
         }
 
-        // Random walk with mean reversion toward base price
+        // Random walk with mean reversion
         const directionFactor = Math.random() > 0.49 ? 1 : -1;
         const delta = (Math.random() * pipStep + pipStep * 0.2) * directionFactor;
         const newPrice = Number(Math.max(0.0001, currentPrice + delta).toFixed(inst.decimals));
@@ -401,7 +404,7 @@ export class RealTimeMarketFeed {
           });
         }
       }
-    }, 650);
+    }, 550);
   }
 
   public stop() {
