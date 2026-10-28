@@ -103,9 +103,6 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
       <div className="px-4 py-2.5 bg-[#111722] border-b border-slate-800/80 flex items-center justify-between text-xs font-mono">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-bold text-white tracking-wide">
-            Trading Chart Engine (Resmi):
-          </span>
           <span className="px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-bold">
             {tvSymbol}
           </span>
@@ -114,9 +111,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
         <div className="hidden sm:flex items-center gap-3 text-slate-400 text-[11px]">
           <span>Timeframe: <strong className="text-white">{timeframe}</strong></span>
           <span>|</span>
-          <span>Broker / Exchange: <strong className="text-emerald-400">{instrument.category === 'forex' || instrument.category === 'commodities' ? 'Valetax MT5 / Spot' : instrument.exchange}</strong></span>
-          <span>|</span>
-          <span className="text-cyan-400 font-semibold">● Live Interactive Chart</span>
+          <span className="text-cyan-400 font-semibold">● Live Chart</span>
         </div>
       </div>
 
