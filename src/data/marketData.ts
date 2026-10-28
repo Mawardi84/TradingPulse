@@ -995,28 +995,38 @@ export function generateHistoricalCandles(
   timeframe: Timeframe,
   count = 110
 ): Candle[] {
-  const stepSec = TIMEFRAME_SECONDS[timeframe];
+  const stepSec = TIMEFRAME_SECONDS[timeframe] || 900;
   const nowSec = Math.floor(Date.now() / 1000 / stepSec) * stepSec;
   const seedBase = hashSeed(`${instrument.symbol}-${timeframe}`);
 
   const volatilityMap: Record<Timeframe, number> = {
-    '1m': 0.0018,
-    '5m': 0.0032,
-    '15m': 0.0048,
-    '1h': 0.0075,
-    '4h': 0.0125,
-    '1D': 0.0195,
+    '1m': 0.0012,
+    '5m': 0.0022,
+    '15m': 0.0038,
+    '1h': 0.0065,
+    '4h': 0.0110,
+    '1D': 0.0180,
   };
-  const volScale = volatilityMap[timeframe];
+  const volScale = volatilityMap[timeframe] || 0.0038;
 
+  // Real financial price generator with authentic green/red candle distribution:
+  // An uptrend (+2%) has ~52% green candles and 48% red pullback candles.
+  // A downtrend (-2%) has ~52% red candles and 48% green bounce candles.
   const closes: number[] = new Array(count);
   closes[count - 1] = instrument.price;
 
+  const totalTrendPercent = (instrument.changePercent24h || 0) / 100;
+  const netDriftPerCandle = totalTrendPercent / Math.max(1, count);
+
   for (let i = count - 2; i >= 0; i--) {
-    const angle = (i + (seedBase % 97)) * 0.27;
-    const wave = Math.sin(angle) * 0.45 + Math.cos(angle * 0.63) * 0.35;
-    const drift = instrument.changePercent24h >= 0 ? 0.0005 : -0.0004;
-    const pctStep = wave * volScale + drift;
+    // High-frequency pseudo-random noise generator using deterministic hash
+    const noise = Math.abs(Math.sin((i + 1) * 12.9898 + (seedBase % 97) * 7.1234) * 43758.5453);
+    const rnd = noise - Math.floor(noise); // 0.0 to 1.0 random seed
+    
+    // Wave oscillation combined with candle-by-candle random noise swing (-1.2 to +1.2)
+    const wave = (rnd - 0.49) * 2.2 + Math.sin(i * 0.35 + (seedBase % 13)) * 0.5;
+    
+    const pctStep = wave * volScale + netDriftPerCandle;
     const prevClose = closes[i + 1] / (1 + pctStep);
     closes[i] = Number(prevClose.toFixed(instrument.decimals));
   }
@@ -1024,14 +1034,27 @@ export function generateHistoricalCandles(
   const candles: Candle[] = [];
   for (let i = 0; i < count; i++) {
     const close = closes[i];
-    const open = i === 0 ? Number((close * 0.998).toFixed(instrument.decimals)) : closes[i - 1];
-    const bodyDiff = Math.abs(close - open);
-    const wickSeed = Math.abs(Math.sin((i + 1) * 1.9 + seedBase));
-    const upperWick = Math.max(close * volScale * 0.45 * wickSeed, bodyDiff * 0.35);
-    const lowerWick = Math.max(close * volScale * 0.45 * (1 - wickSeed * 0.5), bodyDiff * 0.35);
-    const high = Number((Math.max(open, close) + upperWick).toFixed(instrument.decimals));
-    const low = Number((Math.min(open, close) - lowerWick).toFixed(instrument.decimals));
-    const baseVol = Math.max(1000, Math.round((instrument.volume24h / 96) * (0.65 + wickSeed * 0.9)));
+    const prevClose = i === 0 ? close * 0.999 : closes[i - 1];
+
+    // Determine realistic Open price with small inter-candle gap/noise
+    const gapNoise = (Math.sin((i + seedBase) * 3.7) - 0.5) * volScale * 0.15;
+    const open = i === 0 ? Number((close * 0.998).toFixed(instrument.decimals)) : Number((prevClose * (1 + gapNoise)).toFixed(instrument.decimals));
+
+    const bodyHigh = Math.max(open, close);
+    const bodyLow = Math.min(open, close);
+    const bodyRange = Math.max(close * 0.0001, bodyHigh - bodyLow);
+
+    // Realistic wicks above and below candle body
+    const upperWickSeed = Math.abs(Math.sin((i + 1) * 2.3 + seedBase));
+    const lowerWickSeed = Math.abs(Math.cos((i + 1) * 1.7 + seedBase));
+    
+    const upperWick = Math.max(close * volScale * 0.35 * upperWickSeed, bodyRange * 0.25);
+    const lowerWick = Math.max(close * volScale * 0.35 * lowerWickSeed, bodyRange * 0.25);
+
+    const high = Number((bodyHigh + upperWick).toFixed(instrument.decimals));
+    const low = Number((Math.max(0.0001, bodyLow - lowerWick)).toFixed(instrument.decimals));
+
+    const baseVol = Math.max(1000, Math.round((instrument.volume24h / 96) * (0.65 + upperWickSeed * 0.9)));
 
     candles.push({
       time: nowSec - (count - 1 - i) * stepSec,

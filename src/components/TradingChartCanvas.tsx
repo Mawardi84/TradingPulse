@@ -24,6 +24,7 @@ import {
   ZoomOut,
   RotateCcw,
   Activity,
+  Palette,
 } from 'lucide-react';
 
 interface TradingChartCanvasProps {
@@ -36,6 +37,119 @@ interface TradingChartCanvasProps {
 
 type ChartStyle = 'candlestick' | 'area' | 'heikin_ashi';
 type SubIndicator = 'rsi' | 'macd' | 'none';
+export type ChartColorTheme = 'tradingview' | 'neon' | 'colorblind';
+
+export interface ColorScheme {
+  id: ChartColorTheme;
+  name: string;
+  shortName: string;
+  bull: string;
+  bear: string;
+  doji: string;
+  bullVol: string;
+  bearVol: string;
+  supplyFill: string;
+  supplyStroke: string;
+  supplyBadgeBg: string;
+  supplyBadgeBorder: string;
+  supplyBadgeText: string;
+  demandFill: string;
+  demandStroke: string;
+  demandBadgeBg: string;
+  demandBadgeBorder: string;
+  demandBadgeText: string;
+  liveUp: string;
+  liveDown: string;
+  rsiLine: string;
+  macdFast: string;
+  macdSignal: string;
+  macdHistUp: string;
+  macdHistDown: string;
+}
+
+const COLOR_THEMES: Record<ChartColorTheme, ColorScheme> = {
+  tradingview: {
+    id: 'tradingview',
+    name: 'TradingView Pro',
+    shortName: 'TradingView (Hijau/Merah)',
+    bull: '#089981', // Crisp TradingView Pine Green
+    bear: '#F23645', // Crisp TradingView Crimson Red
+    doji: '#94A3B8',
+    bullVol: 'rgba(8, 153, 129, 0.22)',
+    bearVol: 'rgba(242, 54, 69, 0.22)',
+    supplyFill: 'rgba(242, 54, 69, 0.08)',
+    supplyStroke: 'rgba(242, 54, 69, 0.55)',
+    supplyBadgeBg: 'rgba(45, 10, 15, 0.92)',
+    supplyBadgeBorder: 'rgba(242, 54, 69, 0.45)',
+    supplyBadgeText: '#FCA5A5',
+    demandFill: 'rgba(8, 153, 129, 0.08)',
+    demandStroke: 'rgba(8, 153, 129, 0.55)',
+    demandBadgeBg: 'rgba(4, 30, 24, 0.92)',
+    demandBadgeBorder: 'rgba(8, 153, 129, 0.45)',
+    demandBadgeText: '#86EFAC',
+    liveUp: '#089981',
+    liveDown: '#F23645',
+    rsiLine: '#A855F7',
+    macdFast: '#3B82F6',
+    macdSignal: '#F97316',
+    macdHistUp: '#089981',
+    macdHistDown: '#F23645',
+  },
+  neon: {
+    id: 'neon',
+    name: 'Kontras Tinggi Neon',
+    shortName: 'Neon Cyber (Lime/Scarlet)',
+    bull: '#00E676', // Vivid Electric Lime
+    bear: '#FF1744', // Vivid Neon Scarlet
+    doji: '#E2E8F0',
+    bullVol: 'rgba(0, 230, 118, 0.25)',
+    bearVol: 'rgba(255, 23, 68, 0.25)',
+    supplyFill: 'rgba(255, 23, 68, 0.09)',
+    supplyStroke: 'rgba(255, 23, 68, 0.65)',
+    supplyBadgeBg: 'rgba(50, 5, 15, 0.92)',
+    supplyBadgeBorder: 'rgba(255, 23, 68, 0.5)',
+    supplyBadgeText: '#FFA4B6',
+    demandFill: 'rgba(0, 230, 118, 0.09)',
+    demandStroke: 'rgba(0, 230, 118, 0.65)',
+    demandBadgeBg: 'rgba(2, 40, 20, 0.92)',
+    demandBadgeBorder: 'rgba(0, 230, 118, 0.5)',
+    demandBadgeText: '#A7F3D0',
+    liveUp: '#00E676',
+    liveDown: '#FF1744',
+    rsiLine: '#C084FC',
+    macdFast: '#00D2FF',
+    macdSignal: '#FF9100',
+    macdHistUp: '#00E676',
+    macdHistDown: '#FF1744',
+  },
+  colorblind: {
+    id: 'colorblind',
+    name: 'Ramah Buta Warna (Biru/Oranye)',
+    shortName: 'Colorblind-Safe (Biru/Oranye)',
+    bull: '#2563EB', // Professional High-Contrast Royal Blue (Safe for Deuteranopia/Protanopia)
+    bear: '#EA580C', // Professional High-Contrast Deep Orange
+    doji: '#94A3B8',
+    bullVol: 'rgba(37, 99, 235, 0.25)',
+    bearVol: 'rgba(234, 88, 12, 0.25)',
+    supplyFill: 'rgba(234, 88, 12, 0.09)',
+    supplyStroke: 'rgba(234, 88, 12, 0.6)',
+    supplyBadgeBg: 'rgba(50, 20, 5, 0.92)',
+    supplyBadgeBorder: 'rgba(234, 88, 12, 0.5)',
+    supplyBadgeText: '#FDBA74',
+    demandFill: 'rgba(37, 99, 235, 0.09)',
+    demandStroke: 'rgba(37, 99, 235, 0.6)',
+    demandBadgeBg: 'rgba(10, 25, 55, 0.92)',
+    demandBadgeBorder: 'rgba(37, 99, 235, 0.5)',
+    demandBadgeText: '#93C5FD',
+    liveUp: '#2563EB',
+    liveDown: '#EA580C',
+    rsiLine: '#9333EA',
+    macdFast: '#38BDF8',
+    macdSignal: '#F59E0B',
+    macdHistUp: '#2563EB',
+    macdHistDown: '#EA580C',
+  },
+};
 
 export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
   instrument,
@@ -45,6 +159,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
   liveSource,
 }) => {
   const [chartStyle, setChartStyle] = useState<ChartStyle>('candlestick');
+  const [colorTheme, setColorTheme] = useState<ChartColorTheme>('tradingview');
   const [showEma20, setShowEma20] = useState(true);
   const [showEma50, setShowEma50] = useState(true);
   const [showBollinger, setShowBollinger] = useState(false);
@@ -57,6 +172,8 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
   const [visibleCount, setVisibleCount] = useState(72);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoverYRatio, setHoverYRatio] = useState<number | null>(null);
+
+  const activeTheme = COLOR_THEMES[colorTheme];
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
@@ -248,7 +365,9 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
     minPrice + ((maxPrice - minPrice) * (5 - i)) / 5
   );
 
-  const isUp = activeCandle.close >= activeCandle.open;
+  const candleDiff = (activeCandle?.close ?? instrument.price) - (activeCandle?.open ?? instrument.price);
+  const candleDiffPercent = (candleDiff / Math.max(0.0001, activeCandle?.open ?? instrument.price)) * 100;
+  const isCandleUp = candleDiff >= 0;
 
   return (
     <div className="flex flex-col bg-[#0B0F17] border border-slate-800/90 rounded-sm overflow-hidden shadow-2xl">
@@ -380,6 +499,19 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             <Activity className="w-3.5 h-3.5 text-blue-400" />
             <span>Oscillator: {subIndicator.toUpperCase()}</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setColorTheme((prev) => (prev === 'tradingview' ? 'neon' : prev === 'neon' ? 'colorblind' : 'tradingview'));
+            }}
+            title="Ganti Tema Warna Chart (TradingView / Neon / Buta Warna)"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded border bg-[#0B0F17] border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-colors whitespace-nowrap shrink-0"
+          >
+            <Palette className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden lg:inline text-slate-400">Tema:</span>
+            <span className="font-semibold text-amber-300">{activeTheme.shortName}</span>
+          </button>
         </div>
 
         {/* Right: Drawing Tools & Zoom */}
@@ -499,16 +631,19 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             {instrument.displaySymbol} · {timeframe} · {instrument.exchange}
           </span>
           <span className="text-slate-400">
-            O <strong className={isUp ? 'text-emerald-400' : 'text-rose-400'}>{(activeCandle?.open ?? instrument.price).toFixed(instrument.decimals)}</strong>
+            O <strong className="text-slate-100">{(activeCandle?.open ?? instrument.price).toFixed(instrument.decimals)}</strong>
           </span>
           <span className="text-slate-400">
-            H <strong className={isUp ? 'text-emerald-400' : 'text-rose-400'}>{(activeCandle?.high ?? instrument.price).toFixed(instrument.decimals)}</strong>
+            H <strong className="text-slate-100">{(activeCandle?.high ?? instrument.price).toFixed(instrument.decimals)}</strong>
           </span>
           <span className="text-slate-400">
-            L <strong className={isUp ? 'text-emerald-400' : 'text-rose-400'}>{(activeCandle?.low ?? instrument.price).toFixed(instrument.decimals)}</strong>
+            L <strong className="text-slate-100">{(activeCandle?.low ?? instrument.price).toFixed(instrument.decimals)}</strong>
           </span>
           <span className="text-slate-400">
-            C <strong className={isUp ? 'text-emerald-400' : 'text-rose-400'}>{(activeCandle?.close ?? instrument.price).toFixed(instrument.decimals)}</strong>
+            C <strong className="text-slate-100">{(activeCandle?.close ?? instrument.price).toFixed(instrument.decimals)}</strong>
+          </span>
+          <span className="text-slate-400">
+            Chg <strong className={isCandleUp ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{isCandleUp ? '+' : ''}{candleDiff.toFixed(instrument.decimals)} ({isCandleUp ? '+' : ''}{candleDiffPercent.toFixed(2)}%)</strong>
           </span>
           <span className="text-slate-400">
             Vol <strong className="text-slate-300">{((activeCandle?.volume ?? 0) / 1000).toFixed(1)}K</strong>
@@ -548,6 +683,28 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
           onClick={handleChartClick}
           data-testid="trading-chart-svg"
         >
+          {/* Background fill */}
+          <rect x="0" y="0" width={width} height={totalHeight} fill="#0B0F17" />
+
+          {/* Vertical Time Grid Lines */}
+          {displayCandles.map((c, idx) => {
+            if (idx % 12 !== 0 && idx !== displayCandles.length - 1) return null;
+            const x = indexToX(idx);
+            return (
+              <line
+                key={`vgrid-${c.time}`}
+                x1={x}
+                y1={padTop}
+                x2={x}
+                y2={padTop + plotHeight}
+                stroke="#1E293B"
+                strokeDasharray="2 4"
+                strokeWidth="0.8"
+                opacity="0.4"
+              />
+            );
+          })}
+
           {/* Horizontal Price Grid Lines & Right Axis Labels */}
           {priceLevels.map((lvl, idx) => {
             const y = priceToY(lvl);
@@ -561,12 +718,13 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
                   stroke="#1E293B"
                   strokeDasharray="2 3"
                   strokeWidth="1"
+                  opacity="0.7"
                 />
                 <text
                   x={width - padRight + 6}
                   y={y + 4}
-                  fill="#64748B"
-                  fontSize="10.5"
+                  fill="#94A3B8"
+                  fontSize="10"
                   fontFamily="JetBrains Mono, monospace"
                 >
                   {lvl.toFixed(instrument.decimals)}
@@ -575,7 +733,17 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             );
           })}
 
-          {/* Supply & Demand Zones Overlay (Clean Institutional SMC - Anti-Numpuk) */}
+          {/* Right Price Scale Divider Line */}
+          <line
+            x1={width - padRight}
+            y1={padTop}
+            x2={width - padRight}
+            y2={padTop + plotHeight}
+            stroke="#1E293B"
+            strokeWidth="1"
+          />
+
+          {/* Supply & Demand Zones Overlay (Clean Institutional SMC - Theme Aware) */}
           {showSD &&
             zones.map((z) => {
               const isSupply = z.type === 'supply';
@@ -588,13 +756,13 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
 
               if (boxY > padTop + plotHeight || boxY + boxH < padTop) return null;
 
-              const strokeColor = isSupply ? '#F43F5E' : '#10B981';
-              const fillColor = isSupply ? 'rgba(244, 63, 94, 0.09)' : 'rgba(16, 185, 129, 0.09)';
-              const badgeBg = isSupply ? 'rgba(69, 10, 10, 0.85)' : 'rgba(2, 44, 34, 0.85)';
-              const badgeBorder = isSupply ? 'rgba(244, 63, 94, 0.5)' : 'rgba(16, 185, 129, 0.5)';
-              const textColor = isSupply ? '#FDA4AF' : '#86EFAC';
+              const strokeColor = isSupply ? activeTheme.supplyStroke : activeTheme.demandStroke;
+              const fillColor = isSupply ? activeTheme.supplyFill : activeTheme.demandFill;
+              const badgeBg = isSupply ? activeTheme.supplyBadgeBg : activeTheme.demandBadgeBg;
+              const badgeBorder = isSupply ? activeTheme.supplyBadgeBorder : activeTheme.demandBadgeBorder;
+              const textColor = isSupply ? activeTheme.supplyBadgeText : activeTheme.demandBadgeText;
               const labelText = `${isSupply ? 'SUPPLY' : 'DEMAND'}: ${z.bottom.toFixed(instrument.decimals)} - ${z.top.toFixed(instrument.decimals)}${z.strength ? ` · ${z.strength}` : ''}`;
-              const badgeWidth = Math.min(220, Math.max(120, labelText.length * 7));
+              const badgeWidth = Math.min(220, Math.max(120, labelText.length * 6.8));
 
               return (
                 <g key={z.id} pointerEvents="none">
@@ -678,32 +846,57 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
                 y={volY}
                 width={barW}
                 height={Math.max(1, volH)}
-                fill={up ? 'rgba(16, 185, 129, 0.16)' : 'rgba(244, 63, 94, 0.16)'}
+                fill={up ? activeTheme.bullVol : activeTheme.bearVol}
               />
             );
           })}
 
-          {/* Bollinger Bands Overlay */}
+          {/* Bollinger Bands Overlay with Shaded Channel Ribbon */}
           {showBollinger && (
             <g>
+              {(() => {
+                const validPoints = bb
+                  .map((b, i) => ({ b, i }))
+                  .filter((p) => p.b.upper !== null && p.b.lower !== null);
+                if (validPoints.length < 2) return null;
+                let upperD = '';
+                let lowerD = '';
+                validPoints.forEach(({ b, i }) => {
+                  const x = indexToX(i);
+                  const yU = priceToY(b.upper as number);
+                  const yL = priceToY(b.lower as number);
+                  upperD += upperD === '' ? `M ${x.toFixed(1)} ${yU.toFixed(1)}` : ` L ${x.toFixed(1)} ${yU.toFixed(1)}`;
+                  lowerD = ` L ${x.toFixed(1)} ${yL.toFixed(1)}` + lowerD;
+                });
+                return (
+                  <path
+                    d={upperD + lowerD + ' Z'}
+                    fill="rgba(99, 102, 241, 0.06)"
+                    stroke="none"
+                  />
+                );
+              })()}
               <path
                 d={buildLinePath(bb.map((b) => b.upper))}
                 fill="none"
-                stroke="rgba(168, 85, 247, 0.65)"
+                stroke="#818CF8"
                 strokeWidth="1.2"
+                opacity="0.85"
               />
               <path
                 d={buildLinePath(bb.map((b) => b.middle))}
                 fill="none"
-                stroke="rgba(168, 85, 247, 0.4)"
+                stroke="#6366F1"
                 strokeDasharray="3 3"
                 strokeWidth="1"
+                opacity="0.75"
               />
               <path
                 d={buildLinePath(bb.map((b) => b.lower))}
                 fill="none"
-                stroke="rgba(168, 85, 247, 0.65)"
+                stroke="#818CF8"
                 strokeWidth="1.2"
+                opacity="0.85"
               />
             </g>
           )}
@@ -712,9 +905,9 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
           {showPivots && pivots && (
             <g>
               {[
-                { label: 'R1', val: pivots.r1, color: '#F43F5E' },
-                { label: 'P', val: pivots.p, color: '#EAB308' },
-                { label: 'S1', val: pivots.s1, color: '#10B981' },
+                { label: 'R1', val: pivots.r1, color: '#FB7185' },
+                { label: 'P', val: pivots.p, color: '#FBBF24' },
+                { label: 'S1', val: pivots.s1, color: '#34D399' },
               ].map((pv) => {
                 if (pv.val < minPrice || pv.val > maxPrice) return null;
                 const y = priceToY(pv.val);
@@ -733,7 +926,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
                       x={padLeft + 6}
                       y={y - 4}
                       fill={pv.color}
-                      fontSize="10"
+                      fontSize="9.5"
                       fontFamily="JetBrains Mono, monospace"
                     >
                       Pivot {pv.label}: {(pv.val ?? 0).toFixed(instrument.decimals)}
@@ -771,11 +964,12 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
               )}
             </g>
           ) : (
-            displayCandles.map((c, idx) => {
-              const x = indexToX(idx);
-              const candleW = Math.max(2.5, (plotWidth / displayCandles.length) * 0.68);
-              const up = c.close >= c.open;
-              const color = up ? '#10B981' : '#F43F5E';
+            displayCandles.map((c) => {
+              const x = indexToX(displayCandles.indexOf(c));
+              const candleW = Math.max(2.5, (plotWidth / displayCandles.length) * 0.72);
+              const isBull = c.close > c.open;
+              const isBear = c.close < c.open;
+              const candleColor = isBull ? activeTheme.bull : isBear ? activeTheme.bear : activeTheme.doji;
               const highY = priceToY(c.high);
               const lowY = priceToY(c.low);
               const openY = priceToY(c.open);
@@ -785,20 +979,25 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
 
               return (
                 <g key={c.time}>
+                  {/* High to Low Wick */}
                   <line
                     x1={x}
                     y1={highY}
                     x2={x}
                     y2={lowY}
-                    stroke={color}
-                    strokeWidth="1.2"
+                    stroke={candleColor}
+                    strokeWidth="1.25"
+                    strokeLinecap="round"
                   />
+                  {/* Candle Body */}
                   <rect
                     x={x - candleW / 2}
                     y={bodyTop}
                     width={candleW}
                     height={bodyHeight}
-                    fill={color}
+                    fill={candleColor}
+                    stroke={candleColor}
+                    strokeWidth="0.8"
                     rx="0.5"
                   />
                 </g>
@@ -819,7 +1018,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             <path
               d={buildLinePath(ema50)}
               fill="none"
-              stroke="#38BDF8"
+              stroke="#06B6D4"
               strokeWidth="1.6"
             />
           )}
@@ -858,7 +1057,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             const currentY = Math.max(padTop, Math.min(padTop + plotHeight, priceToY(currentPrice)));
             const lastCandle = displayCandles[displayCandles.length - 1];
             const isUpNow = currentPrice >= lastCandle.open;
-            const liveColor = isUpNow ? '#10B981' : '#F43F5E';
+            const liveColor = isUpNow ? activeTheme.liveUp : activeTheme.liveDown;
 
             return (
               <g key="live-price-tracker">
@@ -911,30 +1110,122 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             <g transform={`translate(0, ${mainHeight})`}>
               <line x1={0} y1={0} x2={width} y2={0} stroke="#1E293B" strokeWidth="1.5" />
               {subIndicator === 'rsi' ? (
-                <>
-                  <text x={padLeft + 4} y={14} fill="#94A3B8" fontSize="10" fontFamily="JetBrains Mono, monospace">
-                    RSI (14): {activeRsi !== null && activeRsi !== undefined ? activeRsi.toFixed(2) : '—'}
-                  </text>
-                  <path
-                    d={(() => {
-                      let d = '';
-                      rsi.forEach((v, i) => {
-                        if (v === null) return;
-                        const x = indexToX(i);
-                        const y = 16 + ((100 - v) / 100) * (subHeight - 24);
-                        d += d === '' ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-                      });
-                      return d;
-                    })()}
-                    fill="none"
-                    stroke="#A855F7"
-                    strokeWidth="1.6"
-                  />
-                </>
+                (() => {
+                  const rsiY70 = 16 + ((100 - 70) / 100) * (subHeight - 24);
+                  const rsiY50 = 16 + ((100 - 50) / 100) * (subHeight - 24);
+                  const rsiY30 = 16 + ((100 - 30) / 100) * (subHeight - 24);
+
+                  let rsiPath = '';
+                  rsi.forEach((v, i) => {
+                    if (v === null) return;
+                    const x = indexToX(i);
+                    const y = 16 + ((100 - v) / 100) * (subHeight - 24);
+                    rsiPath += rsiPath === '' ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+                  });
+
+                  return (
+                    <>
+                      <text x={padLeft + 4} y={13} fill="#94A3B8" fontSize="10" fontFamily="JetBrains Mono, monospace">
+                        RSI (14): <tspan fill={activeTheme.rsiLine} fontWeight="bold">{activeRsi !== null && activeRsi !== undefined ? activeRsi.toFixed(2) : '—'}</tspan>
+                      </text>
+
+                      {/* Shaded Channel between 30 and 70 */}
+                      <rect
+                        x={padLeft}
+                        y={rsiY70}
+                        width={plotWidth}
+                        height={Math.max(1, rsiY30 - rsiY70)}
+                        fill="rgba(168, 85, 247, 0.06)"
+                      />
+
+                      {/* 70 Level (Overbought) */}
+                      <line x1={padLeft} y1={rsiY70} x2={width - padRight} y2={rsiY70} stroke="#EF4444" strokeDasharray="3 3" strokeWidth="0.8" opacity="0.6" />
+                      <text x={width - padRight + 6} y={rsiY70 + 3.5} fill="#EF4444" fontSize="9" fontFamily="JetBrains Mono, monospace" opacity="0.8">70</text>
+
+                      {/* 50 Level (Midline) */}
+                      <line x1={padLeft} y1={rsiY50} x2={width - padRight} y2={rsiY50} stroke="#475569" strokeDasharray="2 3" strokeWidth="0.8" opacity="0.5" />
+                      <text x={width - padRight + 6} y={rsiY50 + 3.5} fill="#64748B" fontSize="9" fontFamily="JetBrains Mono, monospace" opacity="0.8">50</text>
+
+                      {/* 30 Level (Oversold) */}
+                      <line x1={padLeft} y1={rsiY30} x2={width - padRight} y2={rsiY30} stroke="#10B981" strokeDasharray="3 3" strokeWidth="0.8" opacity="0.6" />
+                      <text x={width - padRight + 6} y={rsiY30 + 3.5} fill="#10B981" fontSize="9" fontFamily="JetBrains Mono, monospace" opacity="0.8">30</text>
+
+                      {/* RSI Line */}
+                      {rsiPath && <path d={rsiPath} fill="none" stroke={activeTheme.rsiLine} strokeWidth="1.8" />}
+                    </>
+                  );
+                })()
               ) : (
-                <text x={padLeft + 4} y={14} fill="#94A3B8" fontSize="10" fontFamily="JetBrains Mono, monospace">
-                  MACD Active
-                </text>
+                (() => {
+                  let maxAmp = 0.0001;
+                  macd.forEach((m) => {
+                    if (m.macd !== null) maxAmp = Math.max(maxAmp, Math.abs(m.macd));
+                    if (m.signal !== null) maxAmp = Math.max(maxAmp, Math.abs(m.signal));
+                    if (m.histogram !== null) maxAmp = Math.max(maxAmp, Math.abs(m.histogram));
+                  });
+                  maxAmp *= 1.25;
+
+                  const macdZeroY = 16 + (subHeight - 24) / 2;
+                  const macdValToY = (val: number) => macdZeroY - (val / maxAmp) * ((subHeight - 28) / 2);
+
+                  let macdPath = '';
+                  let signalPath = '';
+                  macd.forEach((m, i) => {
+                    const x = indexToX(i);
+                    if (m.macd !== null) {
+                      const y = macdValToY(m.macd);
+                      macdPath += macdPath === '' ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+                    }
+                    if (m.signal !== null) {
+                      const y = macdValToY(m.signal);
+                      signalPath += signalPath === '' ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+                    }
+                  });
+
+                  const barW = Math.max(2, (plotWidth / displayCandles.length) * 0.45);
+
+                  return (
+                    <>
+                      <text x={padLeft + 4} y={13} fill="#94A3B8" fontSize="10" fontFamily="JetBrains Mono, monospace">
+                        MACD (12, 26, 9) ·{' '}
+                        <tspan fill={activeTheme.macdFast} fontWeight="bold">MACD: {activeMacd?.macd !== null && activeMacd?.macd !== undefined ? activeMacd.macd.toFixed(instrument.decimals) : '—'}</tspan> ·{' '}
+                        <tspan fill={activeTheme.macdSignal} fontWeight="bold">Signal: {activeMacd?.signal !== null && activeMacd?.signal !== undefined ? activeMacd.signal.toFixed(instrument.decimals) : '—'}</tspan> ·{' '}
+                        <tspan fill={(activeMacd?.histogram ?? 0) >= 0 ? activeTheme.macdHistUp : activeTheme.macdHistDown} fontWeight="bold">
+                          Hist: {activeMacd?.histogram !== null && activeMacd?.histogram !== undefined ? activeMacd.histogram.toFixed(instrument.decimals) : '—'}
+                        </tspan>
+                      </text>
+
+                      {/* Zero Center Line */}
+                      <line x1={padLeft} y1={macdZeroY} x2={width - padRight} y2={macdZeroY} stroke="#334155" strokeDasharray="3 3" strokeWidth="1" />
+
+                      {/* Histogram Bars */}
+                      {macd.map((m, i) => {
+                        if (m.histogram === null) return null;
+                        const x = indexToX(i);
+                        const y = macdValToY(m.histogram);
+                        const hTop = Math.min(y, macdZeroY);
+                        const hHeight = Math.max(1, Math.abs(macdZeroY - y));
+                        const isHistUp = m.histogram >= 0;
+                        return (
+                          <rect
+                            key={`macd-hist-${i}`}
+                            x={x - barW / 2}
+                            y={hTop}
+                            width={barW}
+                            height={hHeight}
+                            fill={isHistUp ? activeTheme.macdHistUp : activeTheme.macdHistDown}
+                            opacity="0.85"
+                          />
+                        );
+                      })}
+
+                      {/* MACD Line */}
+                      {macdPath && <path d={macdPath} fill="none" stroke={activeTheme.macdFast} strokeWidth="1.6" />}
+                      {/* Signal Line */}
+                      {signalPath && <path d={signalPath} fill="none" stroke={activeTheme.macdSignal} strokeWidth="1.6" />}
+                    </>
+                  );
+                })()
               )}
             </g>
           )}
