@@ -16,6 +16,7 @@ import { MacroFormulasView } from './components/MacroFormulasView';
 import { WatchlistTickerBar } from './components/WatchlistTickerBar';
 import { ChartTradingWidget } from './components/ChartTradingWidget';
 import { TradingChatPanel } from './components/TradingChatPanel';
+import { MultiTimeframeSetupPanel } from './components/MultiTimeframeSetupPanel';
 import {
   Radio,
   Pause,
@@ -33,12 +34,12 @@ import {
 
 export function App() {
   const [activeSection, setActiveSection] = useState<
-    'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot'
+    'chart' | 'mtf_signal' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot'
   >('chart');
 
   // Chart view side tab selection
   const [chartSideTab, setChartSideTab] = useState<
-    'technicals' | 'fundamentals' | 'sentiment' | 'multiasset' | 'chat'
+    'technicals' | 'mtf_setup' | 'fundamentals' | 'sentiment' | 'multiasset' | 'chat'
   >('technicals');
   const [showMultiAssetDrawer, setShowMultiAssetDrawer] = useState<boolean>(false);
 
@@ -70,6 +71,7 @@ export function App() {
 
   const navItems = [
     { id: 'chart', label: 'Chart & Trading' },
+    { id: 'mtf_signal', label: 'Sinyal Setup MTF (Catatan)' },
     { id: 'chat', label: 'Chat Trading & Sinyal' },
     { id: 'fundamental', label: 'Fundamental' },
     { id: 'calendar', label: 'Kalender Ekonomi' },
@@ -350,6 +352,18 @@ export function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setChartSideTab('mtf_setup')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
+                    chartSideTab === 'mtf_setup'
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Sinyal MTF</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setChartSideTab('fundamentals')}
                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded transition-colors whitespace-nowrap ${
                     chartSideTab === 'fundamentals'
@@ -411,6 +425,17 @@ export function App() {
                 </div>
               )}
 
+              {chartSideTab === 'mtf_setup' && (
+                <div className="space-y-4">
+                  <MultiTimeframeSetupPanel
+                    currentInstrument={selectedInstrument}
+                    allInstruments={instruments}
+                    candles={candles}
+                    onSelectInstrument={(sym) => setSelectedSymbol(sym)}
+                  />
+                </div>
+              )}
+
               {chartSideTab === 'fundamentals' && (
                 <div className="space-y-4">
                   <FundamentalSummaryPanel
@@ -459,6 +484,27 @@ export function App() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Dedicated Multi-Timeframe Setup Signal Engine View */}
+      {activeSection === 'mtf_signal' && (
+        <div className="space-y-4">
+          <WatchlistTickerBar
+            instruments={instruments}
+            selectedSymbol={selectedSymbol}
+            onSelectSymbol={setSelectedSymbol}
+            recentTicks={recentTicks}
+            connectionStatus={connectionStatus}
+          />
+          <MultiTimeframeSetupPanel
+            currentInstrument={selectedInstrument}
+            allInstruments={instruments}
+            candles={candles}
+            onSelectInstrument={(sym) => {
+              setSelectedSymbol(sym);
+            }}
+          />
         </div>
       )}
 
