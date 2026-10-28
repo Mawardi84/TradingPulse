@@ -477,6 +477,7 @@ export function App() {
                 <div className="space-y-4">
                   <TradingChatPanel
                     currentInstrument={selectedInstrument}
+                    candles={candles}
                     onJumpToAsset={handleJumpToChart}
                   />
                   <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
@@ -522,6 +523,7 @@ export function App() {
             <div className="lg:col-span-2">
               <TradingChatPanel
                 currentInstrument={selectedInstrument}
+                candles={candles}
                 onJumpToAsset={handleJumpToChart}
               />
             </div>
