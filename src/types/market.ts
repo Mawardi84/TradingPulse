@@ -144,6 +144,23 @@ export interface EconomicEvent {
   affectedAssets: string[];
 }
 
+export interface FomcMeeting {
+  id: string;
+  meetingDates: string;
+  decisionDateLabel: string;
+  decisionTimeWIB: string;
+  pressConferenceTimeWIB: string;
+  hasSEP: boolean; // Summary of Economic Projections (Dot Plot)
+  status: 'completed' | 'next' | 'upcoming';
+  rateBefore: string;
+  rateAfterOrExpected: string;
+  decisionOrExpectation: string;
+  fedWatchCutProb: number;
+  fedWatchHoldProb: number;
+  notes: string;
+  affectedAssets: string[];
+}
+
 export interface MarketNewsItem {
   id: string;
   title: string;

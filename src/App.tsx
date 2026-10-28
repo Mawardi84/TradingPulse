@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Candle } from './types/market';
 import { INITIAL_MARKET_NEWS, ECONOMIC_EVENTS, generateHistoricalCandles } from './data/marketData';
 import { useRealTimeMarket } from './hooks/useRealTimeMarket';
@@ -31,6 +31,7 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
+  ArrowUp,
 } from 'lucide-react';
 
 export function App() {
@@ -69,27 +70,62 @@ export function App() {
     { id: 'mtf_signal', label: 'Sinyal Setup MTF (Catatan)' },
     { id: 'chat', label: 'Chat Trading & Sinyal' },
     { id: 'fundamental', label: 'Fundamental' },
-    { id: 'calendar', label: 'Kalender Ekonomi' },
+    { id: 'calendar', label: 'Kalender Ekonomi & FOMC' },
     { id: 'macro', label: 'Rumus Kuantitatif Makro' },
     { id: 'news', label: 'Berita Pasar' },
     { id: 'screener', label: 'Screener Multi-Aset' },
     { id: 'bot', label: 'Bot Trading MT5' },
   ];
 
+  const scrollToTop = () => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+    if (document.documentElement) {
+      document.documentElement.scrollTop = 0;
+    }
+    if (document.body) {
+      document.body.scrollTop = 0;
+    }
+  };
+
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 200);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    scrollToTop();
+  }, [activeSection]);
+
+  const handleNavClick = (sectionId: typeof activeSection) => {
+    setActiveSection(sectionId);
+    scrollToTop();
+  };
+
   const handleJumpToChart = (symbol: string) => {
     setSelectedSymbol(symbol);
     setActiveSection('chart');
+    scrollToTop();
   };
 
   const handleJumpToFundamental = (symbol: string) => {
     setSelectedSymbol(symbol);
     setActiveSection('fundamental');
+    scrollToTop();
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-3 sm:p-5">
-      {/* Header with Live Engine Status & Controls */}
-      <header className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-4 border-b border-slate-800/80 pb-3">
+      {/* Sticky Header with Live Engine Status & Controls */}
+      <header className="sticky top-0 z-40 bg-[#0B0F17]/95 backdrop-blur-md pb-3 pt-2 border-b border-slate-800/80 -mx-3 sm:-mx-5 px-3 sm:px-5 mb-4 shadow-xl shadow-black/40 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-start">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">
@@ -159,7 +195,7 @@ export function App() {
             <button
               key={item.id}
               type="button"
-              onClick={() => setActiveSection(item.id as any)}
+              onClick={() => handleNavClick(item.id as any)}
               className={`px-3 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap ${
                 activeSection === item.id
                   ? 'bg-blue-600 text-white shadow'
@@ -427,7 +463,10 @@ export function App() {
                     currentInstrument={selectedInstrument}
                     allInstruments={instruments}
                     candles={candles}
-                    onSelectInstrument={(sym: string) => setSelectedSymbol(sym)}
+                    onSelectInstrument={(sym: string) => {
+                      setSelectedSymbol(sym);
+                      scrollToTop();
+                    }}
                   />
                 </div>
               )}
@@ -490,7 +529,10 @@ export function App() {
           <WatchlistTickerBar
             instruments={instruments}
             selectedSymbol={selectedSymbol}
-            onSelectSymbol={setSelectedSymbol}
+            onSelectSymbol={(sym) => {
+              setSelectedSymbol(sym);
+              scrollToTop();
+            }}
             recentTicks={recentTicks}
             connectionStatus={connectionStatus}
           />
@@ -499,7 +541,7 @@ export function App() {
             allInstruments={instruments}
             candles={candles}
             onSelectInstrument={(sym: string) => {
-              setSelectedSymbol(sym);
+              handleJumpToChart(sym);
             }}
           />
         </div>
@@ -540,12 +582,16 @@ export function App() {
         />
       )}
 
-      {/* Economic Calendar View */}
+      {/* Economic Calendar & FOMC Schedule View */}
       {activeSection === 'calendar' && (
         <EconomicCalendarView
           events={ECONOMIC_EVENTS}
           onSimulateRelease={() => {}}
           onJumpToAsset={handleJumpToChart}
+          onJumpToMacroFormula={() => {
+            setActiveSection('macro');
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
@@ -576,6 +622,20 @@ export function App() {
       {/* Bot Manager View */}
       {activeSection === 'bot' && <TradingBotManager />}
       </ErrorBoundary>
+
+      {/* Floating Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-full shadow-2xl shadow-blue-600/50 border border-blue-400/40 transition-all flex items-center gap-2 text-xs font-mono font-bold cursor-pointer group"
+          title="Kembali ke atas"
+          aria-label="Kembali ke atas"
+        >
+          <ArrowUp className="w-4 h-4 stroke-[2.5] group-hover:-translate-y-0.5 transition-transform" />
+          <span className="hidden sm:inline">Kembali ke Atas</span>
+        </button>
+      )}
     </div>
   );
 }

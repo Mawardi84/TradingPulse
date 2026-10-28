@@ -227,7 +227,10 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
         <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 self-stretch sm:self-auto justify-center">
           <button
             type="button"
-            onClick={() => setActiveTab('current')}
+            onClick={() => {
+              setActiveTab('current');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeTab === 'current'
                 ? 'bg-blue-600 text-white shadow'
@@ -239,7 +242,10 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('scanner')}
+            onClick={() => {
+              setActiveTab('scanner');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeTab === 'scanner'
                 ? 'bg-blue-600 text-white shadow'
@@ -251,7 +257,10 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('cheat_sheet')}
+            onClick={() => {
+              setActiveTab('cheat_sheet');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               activeTab === 'cheat_sheet'
                 ? 'bg-blue-600 text-white shadow'
@@ -591,7 +600,10 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
                   {onSelectInstrument && (
                     <button
                       type="button"
-                      onClick={() => onSelectInstrument(inst.symbol)}
+                      onClick={() => {
+                        onSelectInstrument(inst.symbol);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-mono font-semibold flex items-center gap-1 transition-colors"
                     >
                       <span>Lihat Chart</span>
