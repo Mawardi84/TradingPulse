@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // --- VALIDATION BLUEPRINTS ---
+    function isValidProfile(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['displayName', 'email', 'photoURL', 'balance', 'createdAt', 'updatedAt']) &&
+             data.email is string && data.email.size() <= 100 &&
+             (data.balance == null || data.balance is number) &&
+             (data.displayName == null || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 500));
+    }
+
+    function isValidWatchlist(data, userId) {
+      return data.keys().hasAll(['userId', 'name', 'symbols', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'name', 'symbols', 'createdAt', 'updatedAt']) &&
+             data.userId == userId &&
+             data.name is string && data.name.size() <= 50 &&
+             data.symbols is list && data.symbols.size() <= 100;
+    }
+
+    function isValidPosition(data, userId) {
+      return data.keys().hasAll(['userId', 'symbol', 'type', 'volume', 'entryPrice', 'status', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'symbol', 'type', 'volume', 'entryPrice', 'sl', 'tp', 'status', 'createdAt', 'updatedAt']) &&
+             data.userId == userId &&
+             data.symbol is string && data.symbol.size() <= 20 &&
+             data.type in ['BUY', 'SELL'] &&
+             data.volume is number && data.volume > 0 &&
+             data.entryPrice is number && data.entryPrice > 0 &&
+             data.status in ['OPEN', 'CLOSED'];
+    }
+
+    function isValidSettings(data, userId) {
+      return data.keys().hasAll(['userId', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'layoutConfig', 'theme', 'createdAt', 'updatedAt']) &&
+             data.userId == userId &&
+             (data.layoutConfig == null || (data.layoutConfig is string && data.layoutConfig.size() <= 5000)) &&
+             (data.theme == null || (data.theme is string && data.theme.size() <= 20));
+    }
+
+    function isValidScript(data, userId) {
+      return data.keys().hasAll(['userId', 'name', 'code', 'language', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'name', 'code', 'language', 'description', 'createdAt', 'updatedAt']) &&
+             data.userId == userId &&
+             data.name is string && data.name.size() <= 100 &&
+             data.code is string && data.code.size() <= 10000 &&
+             data.language in ['typescript', 'javascript'] &&
+             (data.description == null || (data.description is string && data.description.size() <= 500));
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isVerified() && isOwner(userId) && isValidProfile(incoming()) &&
+                      incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isVerified() && isOwner(userId) && isValidProfile(incoming()) &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().updatedAt == request.time;
+
+      // 2. Watchlists (Sub-collection)
+      match /watchlists/{watchlistId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isVerified() && isOwner(userId) && isValidWatchlist(incoming(), userId) &&
+                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if isVerified() && isOwner(userId) && isValidWatchlist(incoming(), userId) &&
+                        incoming().createdAt == existing().createdAt &&
+                        incoming().updatedAt == request.time;
+        allow delete: if isVerified() && isOwner(userId);
+      }
+
+      // 3. Active Positions (Sub-collection)
+      match /positions/{positionId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isVerified() && isOwner(userId) && isValidPosition(incoming(), userId) &&
+                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if isVerified() && isOwner(userId) && isValidPosition(incoming(), userId) &&
+                        incoming().createdAt == existing().createdAt &&
+                        incoming().updatedAt == request.time;
+        allow delete: if isVerified() && isOwner(userId);
+      }
+
+      // 4. Trade History (Sub-collection)
+      match /history/{tradeId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isVerified() && isOwner(userId) && isValidPosition(incoming(), userId) &&
+                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if false; // History is immutable
+        allow delete: if isVerified() && isOwner(userId);
+      }
+
+      // 5. User Settings
+      match /settings/terminal {
+        allow get: if isOwner(userId);
+        allow create: if isVerified() && isOwner(userId) && isValidSettings(incoming(), userId) &&
+                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if isVerified() && isOwner(userId) && isValidSettings(incoming(), userId) &&
+                        incoming().createdAt == existing().createdAt &&
+                        incoming().updatedAt == request.time;
+      }
+
+      // 6. Quant Scripts (Sub-collection)
+      match /scripts/{scriptId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isVerified() && isOwner(userId) && isValidScript(incoming(), userId) &&
+                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
+        allow update: if isVerified() && isOwner(userId) && isValidScript(incoming(), userId) &&
+                        incoming().createdAt == existing().createdAt &&
+                        incoming().updatedAt == request.time;
+        allow delete: if isVerified() && isOwner(userId);
+      }
+    }
+  }
+}

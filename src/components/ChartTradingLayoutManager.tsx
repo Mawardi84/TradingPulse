@@ -9,6 +9,10 @@ import { FundamentalSummaryPanel } from './FundamentalSummaryPanel';
 import { MarketSentimentPanel } from './MarketSentimentPanel';
 import { MultiAssetListPanel } from './MultiAssetListPanel';
 import { TradingChatPanel } from './TradingChatPanel';
+import { useFirebase } from '../hooks/useFirebase';
+import { db } from '../services/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, getDocFromServer } from 'firebase/firestore';
+import { auth } from '../services/firebase';
 import {
   GripVertical,
   Maximize2,
@@ -19,7 +23,55 @@ import {
   Sliders,
   Columns,
   Rows,
+  RefreshCw,
 } from 'lucide-react';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 interface ChartTradingLayoutManagerProps {
   instruments: Instrument[];
@@ -87,11 +139,56 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
   const [isResizingHeight, setIsResizingHeight] = useState(false);
   const [isResizingColumns, setIsResizingColumns] = useState(false);
 
+  const { user } = useFirebase();
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+
+  // Load layout from Cloud on mount
+  useEffect(() => {
+    if (!user) return;
+    const path = `users/${user.uid}/settings/terminal`;
+    const loadCloudLayout = async () => {
+      try {
+        const docRef = doc(db, path);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const cloudData = docSnap.data();
+          if (cloudData.layoutConfig) {
+            setLayout(JSON.parse(cloudData.layoutConfig));
+          }
+        }
+      } catch (err) {
+        handleFirestoreError(err, OperationType.GET, path);
+      }
+    };
+    loadCloudLayout();
+  }, [user]);
+
+  // Save layout to LocalStorage and Cloud
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+      
+      if (user) {
+        const path = `users/${user.uid}/settings/terminal`;
+        const syncToCloud = async () => {
+          setIsCloudSyncing(true);
+          try {
+            await setDoc(doc(db, path), {
+              userId: user.uid,
+              layoutConfig: JSON.stringify(layout),
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, path);
+          } finally {
+            setIsCloudSyncing(false);
+          }
+        };
+        const timer = setTimeout(syncToCloud, 2000); // Debounce cloud saves
+        return () => clearTimeout(timer);
+      }
     } catch {}
-  }, [layout]);
+  }, [layout, user]);
 
   const handleResetLayout = () => {
     const defaultLayout: ChartLayoutConfig = {
@@ -129,6 +226,11 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
           <span className="text-zinc-400 text-[10px] hidden sm:inline">
             {layout.isLocked ? '• Layout Terkunci' : '• Mode Kustomisasi Aktif'}
           </span>
+          {isCloudSyncing && (
+            <span className="text-emerald-500 text-[9px] animate-pulse flex items-center gap-1 ml-2">
+              <RefreshCw className="w-2.5 h-2.5" /> SINKRONISASI CLOUD...
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

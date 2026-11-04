@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Information about the authenticated user.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "balance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt", "updatedAt"]
+    },
+    "Watchlist": {
+      "title": "Watchlist",
+      "description": "A list of symbols tracked by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 50 },
+        "symbols": { "type": "array", "description": "Array of symbol strings" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "symbols", "createdAt", "updatedAt"]
+    },
+    "PortfolioPosition": {
+      "title": "Portfolio Position",
+      "description": "A single trading position in the user's portfolio.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "symbol": { "type": "string", "maxLength": 20 },
+        "type": { "type": "string", "enum": ["BUY", "SELL"] },
+        "volume": { "type": "number" },
+        "entryPrice": { "type": "number" },
+        "sl": { "type": "number" },
+        "tp": { "type": "number" },
+        "status": { "type": "string", "enum": ["OPEN", "CLOSED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "symbol", "type", "volume", "entryPrice", "status", "createdAt", "updatedAt"]
+    },
+    "UserSettings": {
+      "title": "User Settings",
+      "description": "Persistent terminal configuration for the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "layoutConfig": { "type": "string", "maxLength": 5000, "description": "JSON string of layout settings" },
+        "theme": { "type": "string", "maxLength": 20 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt", "updatedAt"]
+    },
+    "QuantScript": {
+      "title": "Quant Script",
+      "description": "Custom trading logic script written by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "code": { "type": "string", "maxLength": 10000 },
+        "language": { "type": "string", "enum": ["typescript", "javascript"] },
+        "description": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "code", "language", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles indexed by UID."
+    },
+    "/users/{userId}/watchlists/{watchlistId}": {
+      "schema": "Watchlist",
+      "description": "User custom watchlists."
+    },
+    "/users/{userId}/positions/{positionId}": {
+      "schema": "PortfolioPosition",
+      "description": "User active trading positions."
+    },
+    "/users/{userId}/history/{tradeId}": {
+      "schema": "PortfolioPosition",
+      "description": "User closed trading history."
+    },
+    "/users/{userId}/settings/terminal": {
+      "schema": "UserSettings",
+      "description": "User terminal preferences."
+    },
+    "/users/{userId}/scripts/{scriptId}": {
+      "schema": "QuantScript",
+      "description": "User custom quant scripts."
+    }
+  }
+}

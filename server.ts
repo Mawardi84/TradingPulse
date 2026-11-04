@@ -511,6 +511,62 @@ app.get('/api/fomc/live', async (_req: Request, res: Response) => {
   }
 });
 
+// ==========================================
+// METATRADER 5 (MT5) WEBHOOK BRIDGE ENDPOINTS
+// ==========================================
+const mt5WebhookLogs: string[] = [
+  `[${new Date().toLocaleTimeString()}] MT5 Webhook Bridge initialized at /api/mt5/webhook`,
+  `[${new Date().toLocaleTimeString()}] Waiting for MetaTrader Expert Advisor (EA) HTTP POST payload...`,
+];
+
+app.post('/api/mt5/webhook', (req: Request, res: Response) => {
+  try {
+    const payload = req.body;
+    const timeStr = new Date().toLocaleTimeString();
+    const logMsg = `[${timeStr}] MT5 Webhook Received: ${JSON.stringify(payload)}`;
+    mt5WebhookLogs.unshift(logMsg);
+    if (mt5WebhookLogs.length > 50) mt5WebhookLogs.pop();
+
+    return res.json({
+      success: true,
+      message: 'MT5 Webhook payload received and processed successfully by AstraView Server.',
+      receivedAt: Date.now(),
+      payload,
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+app.get('/api/mt5/logs', (req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    connected: true,
+    webhookEndpoint: `${req.protocol}://${req.get('host')}/api/mt5/webhook`,
+    logs: mt5WebhookLogs,
+  });
+});
+
+app.post('/api/mt5/dispatch', async (req: Request, res: Response) => {
+  try {
+    const { symbol, action, volume, sl, tp } = req.body;
+    const timeStr = new Date().toLocaleTimeString();
+    const dispatchMsg = `[${timeStr}] Dispatching Order to MT5 EA Webhook -> Action: ${action}, Symbol: ${symbol}, Vol: ${volume}, SL: ${sl}, TP: ${tp}`;
+    mt5WebhookLogs.unshift(dispatchMsg);
+
+    return res.json({
+      success: true,
+      message: `Order dispatched to MT5 Webhook successfully.`,
+      orderId: `MT5-${Math.floor(Math.random() * 899999 + 100000)}`,
+      timestamp: Date.now(),
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(process.cwd(), 'dist')));

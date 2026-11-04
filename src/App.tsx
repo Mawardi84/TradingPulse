@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Candle } from './types/market';
 import { INITIAL_MARKET_NEWS, ECONOMIC_EVENTS, generateHistoricalCandles } from './data/marketData';
 import { useRealTimeMarket } from './hooks/useRealTimeMarket';
+import { useFirebase } from './hooks/useFirebase';
 import { TradingChartCanvas } from './components/TradingChartCanvas';
 import { TechnicalAnalysisPanel } from './components/TechnicalAnalysisPanel';
 import { FundamentalAnalysisView } from './components/FundamentalAnalysisView';
@@ -17,9 +18,15 @@ import { WatchlistTickerBar } from './components/WatchlistTickerBar';
 import { ChartTradingWidget, PendingOrder } from './components/ChartTradingWidget';
 import { TradingChatPanel } from './components/TradingChatPanel';
 import { ChartTradingLayoutManager } from './components/ChartTradingLayoutManager';
+import { Phase4HubView } from './components/Phase4HubView';
+import { QuantScriptEditor } from './components/QuantScriptEditor';
+import { CloudPortfolioView } from './components/CloudPortfolioView';
+import { LandingAuthScreen } from './components/LandingAuthScreen';
+import { UserMenu } from './components/UserMenu';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { SystemStatusView } from './components/SystemStatusView';
 import {
   Radio,
   Pause,
@@ -34,11 +41,16 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUp,
+  LayoutDashboard,
+  Wallet as WalletIcon,
+  Activity as ActivityIcon,
 } from 'lucide-react';
 
 export function App() {
+  const { user, loading: authLoading } = useFirebase();
+
   const [activeSection, setActiveSection] = useState<
-    'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot'
+    'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot' | 'phase4' | 'quant' | 'portfolio' | 'system'
   >('chart');
 
   // Chart view side tab selection
@@ -71,6 +83,8 @@ export function App() {
 
   const navItems = [
     { id: 'chart', label: 'Chart & Trading' },
+    { id: 'portfolio', label: 'Cloud Portfolio' },
+    { id: 'system', label: 'System Status' },
     { id: 'chat', label: 'Chat Trading & Sinyal' },
     { id: 'fundamental', label: 'Fundamental' },
     { id: 'calendar', label: 'Kalender Ekonomi & FOMC' },
@@ -78,6 +92,8 @@ export function App() {
     { id: 'news', label: 'Berita Pasar' },
     { id: 'screener', label: 'Screener Multi-Aset' },
     { id: 'bot', label: 'Bot Trading MT5' },
+    { id: 'quant', label: 'Quant Script Editor' },
+    { id: 'phase4', label: 'Phase 4: Lab & Bridge' },
   ];
 
   const scrollToTop = () => {
@@ -133,8 +149,10 @@ export function App() {
     const cmd = commandInput.trim().toLowerCase();
     if (!cmd) return;
 
-    if (cmd.startsWith('/bug') || cmd.startsWith('/audit') || cmd.startsWith('/health') || cmd.startsWith('/debug')) {
-      setShowAuditModal(true);
+    if (cmd.startsWith('/bug') || cmd.startsWith('/audit') || cmd.startsWith('/health') || cmd.startsWith('/debug') || cmd.startsWith('/system')) {
+      setActiveSection('system');
+    } else if (cmd.startsWith('/portfolio') || cmd.startsWith('/account')) {
+      setActiveSection('portfolio');
     } else if (cmd.startsWith('/chart')) {
       const parts = cmd.split(' ');
       if (parts[1]) {
@@ -150,6 +168,8 @@ export function App() {
       setActiveSection('calendar');
     } else if (cmd.startsWith('/macro')) {
       setActiveSection('macro');
+    } else if (cmd.startsWith('/quant') || cmd.startsWith('/script')) {
+      setActiveSection('quant');
     } else if (cmd.startsWith('/bot')) {
       setActiveSection('bot');
     } else if (cmd.startsWith('/chat')) {
@@ -160,6 +180,22 @@ export function App() {
     setCommandInput('');
     scrollToTop();
   };
+
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center font-mono">
+        <div className="flex flex-col items-center gap-4">
+          <RefreshCw className="w-8 h-8 text-yellow-500 animate-spin" />
+          <span className="text-zinc-500 text-[10px] uppercase tracking-widest">Inisialisasi Terminal Secure...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LandingAuthScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-black text-white font-mono text-[11px] p-0">
@@ -176,6 +212,7 @@ export function App() {
 
         {/* Navigation & PWA Action Bar */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+          <UserMenu />
           <PWAInstallButton />
           <nav className="flex items-center gap-0 overflow-x-auto scrollbar-none border-l border-white pl-1 sm:pl-2">
             {navItems.map((item) => (
@@ -227,6 +264,15 @@ export function App() {
           />
         ) : (
           <main className="p-3 min-h-[calc(100vh-60px)] overflow-y-auto bg-black text-white">
+            {activeSection === 'portfolio' && (
+              <CloudPortfolioView 
+                allInstruments={instruments} 
+                onJumpToAsset={handleJumpToChart} 
+              />
+            )}
+
+            {activeSection === 'system' && <SystemStatusView />}
+
             {activeSection === 'chat' && (
               <div className="space-y-4">
                 <WatchlistTickerBar
@@ -295,6 +341,18 @@ export function App() {
             )}
 
             {activeSection === 'bot' && <TradingBotManager />}
+
+            {activeSection === 'quant' && (
+              <QuantScriptEditor currentInstrument={selectedInstrument} />
+            )}
+
+            {activeSection === 'phase4' && (
+              <Phase4HubView
+                instruments={instruments}
+                selectedInstrument={selectedInstrument}
+                candles={candles}
+              />
+            )}
           </main>
         )}
 
@@ -312,7 +370,7 @@ export function App() {
           </button>
         )}
 
-        {/* System Health Audit Modal (/bug command) */}
+        {/* System Health Audit Modal (Legacy /bug command redirect to system) */}
         {showAuditModal && (
           <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xs flex items-center justify-center p-4 font-mono text-xs">
             <div className="bg-black border border-yellow-400 rounded-none max-w-xl w-full p-5 space-y-4 shadow-2xl text-white">
@@ -320,7 +378,7 @@ export function App() {
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 bg-emerald-400 animate-ping" />
                   <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider">
-                    SYSTEM AUDIT & HEALTH CHECK REPORT
+                    SYSTEM REDIRECT
                   </h3>
                 </div>
                 <button
@@ -331,56 +389,51 @@ export function App() {
                   ESC [X]
                 </button>
               </div>
-
-              <div className="p-3 bg-zinc-950 border border-zinc-800 space-y-2 text-[11px]">
-                <div className="text-emerald-400 font-bold flex items-center justify-between border-b border-zinc-800 pb-1.5">
-                  <span>STATUS DIAGNOSTIK UTAMA:</span>
-                  <span className="px-2 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500 font-bold">
-                    0 CRITICAL BUGS (100% OPERATIONAL)
-                  </span>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>1. Real-Time Market Scraper & Binance Feed:</span>
-                    <span className="text-emerald-400 font-bold">● ACTIVE ({connectionStatus.source})</span>
-                  </div>
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>2. TradingView Widget Advanced Engine:</span>
-                    <span className="text-emerald-400 font-bold">● ONLINE (No Study Error)</span>
-                  </div>
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>3. Kalkulator Gold M5 AI Setup Engine:</span>
-                    <span className="text-emerald-400 font-bold">● ONLINE (Offset 0.10 - 0.31)</span>
-                  </div>
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>4. Chart AI Trade Signal Overlay:</span>
-                    <span className="text-emerald-400 font-bold">● ONLINE (Auto-Fill Order)</span>
-                  </div>
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>5. MT5 Trading Bot Bridge:</span>
-                    <span className="text-emerald-400 font-bold">● CONNECTED (12ms Ping)</span>
-                  </div>
-                  <div className="flex items-center justify-between text-zinc-300">
-                    <span>6. Terminal High-Contrast Dark Theme:</span>
-                    <span className="text-yellow-400 font-bold">● OK (Sharp Borders & Yellow/Black)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1">
-                <span>Versi Engine: AstraView TradePulse v2.4 Pro</span>
-                <button
-                  type="button"
-                  onClick={() => setShowAuditModal(false)}
-                  className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold uppercase border border-black cursor-pointer"
-                >
-                  Tutup Audit Report
-                </button>
-              </div>
+              <p className="text-zinc-400">Redirecting to institutional system health monitoring hub...</p>
+              <button 
+                onClick={() => { setActiveSection('system'); setShowAuditModal(false); }}
+                className="w-full py-3 bg-yellow-500 text-black font-extrabold uppercase border border-black hover:bg-yellow-400 transition-colors cursor-pointer"
+              >
+                Go to System Hub
+              </button>
             </div>
           </div>
         )}
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-white flex lg:hidden items-center justify-around py-1 pb-safe px-2">
+          <button 
+            onClick={() => setActiveSection('chart')}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'chart' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-[8px] uppercase">Chart</span>
+          </button>
+          <button 
+            onClick={() => setActiveSection('portfolio')}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'portfolio' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+          >
+            <WalletIcon className="w-5 h-5" />
+            <span className="text-[8px] uppercase">Account</span>
+          </button>
+          <button 
+            onClick={() => setActiveSection('news')}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'news' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+          >
+            <BarChart2 className="w-5 h-5" />
+            <span className="text-[8px] uppercase">Market</span>
+          </button>
+          <button 
+            onClick={() => setActiveSection('system')}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'system' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+          >
+            <ActivityIcon className="w-5 h-5" />
+            <span className="text-[8px] uppercase">System</span>
+          </button>
+        </nav>
+
+        {/* Padding for Bottom Nav on Mobile */}
+        <div className="h-14 lg:hidden bg-black shrink-0" />
       </ErrorBoundary>
     </div>
   );

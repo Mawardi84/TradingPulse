@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Instrument } from '../types/market';
 import { TrendingUp, TrendingDown, DollarSign, X, CheckCircle, AlertCircle, ShoppingCart } from 'lucide-react';
+import { usePortfolio } from '../hooks/usePortfolio';
 
 export interface Position {
   id: string;
@@ -48,122 +49,39 @@ export const ChartTradingWidget: React.FC<{
     }
   }, [pendingOrder]);
 
-  const [balance, setBalance] = useState<number>(50000.0);
-  const [positions, setPositions] = useState<Position[]>([
-    {
-      id: 'pos-1',
-      symbol: 'XAUUSD',
-      displaySymbol: 'XAU/USD',
-      type: 'BUY',
-      lots: 0.2,
-      openPrice: 4052.00,
-      currentPrice: 4057.50,
-      sl: 4030.00,
-      tp: 4090.00,
-      openTime: '10:45:12',
-      pnl: 110.00,
-      pnlPercent: 0.14,
-    },
-    {
-      id: 'pos-2',
-      symbol: 'EURUSD',
-      displaySymbol: 'EUR/USD',
-      type: 'SELL',
-      lots: 0.5,
-      openPrice: 1.087,
-      currentPrice: 1.0845,
-      sl: 1.091,
-      tp: 1.078,
-      openTime: '12:15:40',
-      pnl: 125.0,
-      pnlPercent: 0.23,
-    },
-  ]);
+  const { 
+    positions, 
+    history: closedTrades, 
+    stats, 
+    openPosition, 
+    closePosition 
+  } = usePortfolio(instrument, allInstruments);
 
-  // Dynamically update position current prices and unrealized PnL on every live market tick
-  React.useEffect(() => {
-    setPositions((prev) =>
-      prev.map((p) => {
-        const match =
-          allInstruments.find((i) => i.symbol === p.symbol) ||
-          (p.symbol === instrument.symbol ? instrument : null);
-        if (!match) return p;
+  const { balance, equity, floatingPnL: totalUnrealizedPnL, freeMargin } = stats;
 
-        const currentPrice = match.price;
-        const priceDiff = p.type === 'BUY' ? currentPrice - p.openPrice : p.openPrice - currentPrice;
-        const multiplier = p.symbol.includes('XAU')
-          ? 100
-          : p.symbol.includes('USDT')
-          ? 1
-          : p.symbol.includes('JPY')
-          ? 1000
-          : 100000;
-        const pnl = Number((priceDiff * p.lots * (multiplier > 1000 ? 1000 : multiplier)).toFixed(2));
-        const pnlPercent = Number(((priceDiff / p.openPrice) * 100).toFixed(2));
-
-        return {
-          ...p,
-          currentPrice,
-          pnl,
-          pnlPercent,
-        };
-      })
-    );
-  }, [instrument.price, allInstruments]);
-  const [closedTrades, setClosedTrades] = useState<
-    { id: string; symbol: string; type: 'BUY' | 'SELL'; lots: number; pnl: number; closeTime: string }[]
-  >([
-    { id: 'c-1', symbol: 'BTCUSDT', type: 'BUY', lots: 0.05, pnl: 412.5, closeTime: '09:20 WIB' },
-    { id: 'c-2', symbol: 'NVDA', type: 'BUY', lots: 20, pnl: 184.0, closeTime: '08:14 WIB' },
-  ]);
-
-  const totalUnrealizedPnL = positions.reduce((acc, p) => acc + p.pnl, 0);
-  const equity = balance + totalUnrealizedPnL;
-  const marginUsed = positions.reduce((acc, p) => acc + p.lots * 1000, 0);
-  const freeMargin = equity - marginUsed;
-
-  const handleExecuteOrder = (action: 'BUY' | 'SELL') => {
+  const handleExecuteOrder = async (action: 'BUY' | 'SELL') => {
     const entryPrice = orderType === 'market' ? instrument.price : parseFloat(limitPrice) || instrument.price;
     const sl = parseFloat(slPrice) || Number((entryPrice * (action === 'BUY' ? 0.992 : 1.008)).toFixed(instrument.decimals));
     const tp = parseFloat(tpPrice) || Number((entryPrice * (action === 'BUY' ? 1.018 : 0.982)).toFixed(instrument.decimals));
 
-    const newPos: Position = {
-      id: `pos-${Date.now()}`,
-      symbol: instrument.symbol,
-      displaySymbol: instrument.displaySymbol,
-      type: action,
+    await openPosition(
+      instrument.symbol,
+      instrument.displaySymbol,
+      action,
       lots,
-      openPrice: entryPrice,
-      currentPrice: instrument.price,
+      entryPrice,
       sl,
-      tp,
-      openTime: new Date().toLocaleTimeString(),
-      pnl: 0,
-      pnlPercent: 0,
-    };
-
-    setPositions((prev) => [newPos, ...prev]);
+      tp
+    );
     setActiveTab('positions');
   };
 
-  const handleClosePosition = (id: string) => {
+  const handleClosePosition = async (id: string) => {
     const pos = positions.find((p) => p.id === id);
     if (!pos) return;
-
-    setBalance((prev) => prev + pos.pnl);
-    setClosedTrades((prev) => [
-      {
-        id: `closed-${Date.now()}`,
-        symbol: pos.displaySymbol,
-        type: pos.type,
-        lots: pos.lots,
-        pnl: pos.pnl,
-        closeTime: new Date().toLocaleTimeString(),
-      },
-      ...prev,
-    ]);
-    setPositions((prev) => prev.filter((p) => p.id !== id));
+    await closePosition(pos);
   };
+
 
   return (
     <div className="bg-[#111722] border border-slate-800 rounded-lg shadow-xl overflow-hidden font-mono text-xs">
