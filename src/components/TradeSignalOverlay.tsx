@@ -126,49 +126,42 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
     let strategyLabel = 'QUANT SMC ALGO';
 
     if (isGold) {
-      // Gold Specific Trading Formula based on Cheat Sheet rules
+      // Gold Specific Trading Formula strictly anchored to current live spot price
       const isTrendKuat = Math.abs(instrument.changePercent24h) >= 1.0 || Math.abs(score) >= 30;
+      const goldOffset = 1.20; // 1.2 USD offset for Limit orders relative to current live spot price
 
       if (signalType === 'BUY') {
-        const offset = isTrendKuat ? 0.20 : 0.15;
-        const resistenM5 = Number(highestCandleHigh.toFixed(2));
-        entryPrice = Number((resistenM5 - offset).toFixed(2));
-        slPrice = Number((entryPrice - 3.0).toFixed(2)); // 30 pips
-        tpPrice1 = Number((entryPrice + 5.0).toFixed(2)); // 50 pips
-        tpPrice2 = Number((entryPrice + 7.0).toFixed(2)); // 70 pips
+        entryPrice = Number((price - goldOffset).toFixed(2)); // Buy Limit slightly below current spot price
+        slPrice = Number((entryPrice - 3.50).toFixed(2));
+        tpPrice1 = Number((entryPrice + 5.00).toFixed(2));
+        tpPrice2 = Number((entryPrice + 8.50).toFixed(2));
         strategyLabel = isTrendKuat
-          ? 'GOLD AI TREND KUAT (M5 High - 0.20)'
-          : 'GOLD AI SCALP (M5 High - 0.15)';
+          ? 'GOLD AI TREND KUAT (Buy Limit Pullback)'
+          : 'GOLD AI SCALP (Buy Limit Support)';
       } else {
-        const offset = isTrendKuat ? 0.20 : 0.15;
-        const supportM5 = Number(lowestCandleLow.toFixed(2));
-        entryPrice = Number((supportM5 + offset).toFixed(2));
-        slPrice = Number((entryPrice + 3.0).toFixed(2)); // 30 pips
-        tpPrice1 = Number((entryPrice - 4.5).toFixed(2)); // 45 pips
-        tpPrice2 = Number((entryPrice - 7.0).toFixed(2)); // 70 pips
+        entryPrice = Number((price + goldOffset).toFixed(2)); // Sell Limit slightly above current spot price
+        slPrice = Number((entryPrice + 3.50).toFixed(2));
+        tpPrice1 = Number((entryPrice - 5.00).toFixed(2));
+        tpPrice2 = Number((entryPrice - 8.50).toFixed(2));
         strategyLabel = isTrendKuat
-          ? 'GOLD AI TREND KUAT (M5 Low + 0.20)'
-          : 'GOLD AI SCALP (M5 Low + 0.15)';
+          ? 'GOLD AI TREND KUAT (Sell Limit Resistance)'
+          : 'GOLD AI SCALP (Sell Limit Rejection)';
       }
     } else {
-      // Standard Multi-Asset Quantitative ATR & SMC Formula
+      // Standard Multi-Asset Quantitative ATR & SMC Formula anchored to live spot price
       if (signalType === 'BUY') {
-        entryPrice = nearestDemand
+        entryPrice = nearestDemand && nearestDemand.top >= price * 0.98
           ? Number(nearestDemand.top.toFixed(dec))
           : Number((price - 0.25 * atr).toFixed(dec));
-        slPrice = nearestDemand
-          ? Number((nearestDemand.bottom - 0.5 * atr).toFixed(dec))
-          : Number((entryPrice - 1.5 * atr).toFixed(dec));
+        slPrice = Number((entryPrice - 1.5 * atr).toFixed(dec));
         tpPrice1 = Number((entryPrice + 1.5 * atr).toFixed(dec));
         tpPrice2 = Number((entryPrice + 3.0 * atr).toFixed(dec));
         strategyLabel = nearestDemand ? 'SMC DEMAND PULLBACK' : 'QUANT ATR TREND REVERSAL';
       } else {
-        entryPrice = nearestSupply
+        entryPrice = nearestSupply && nearestSupply.bottom <= price * 1.02
           ? Number(nearestSupply.bottom.toFixed(dec))
           : Number((price + 0.25 * atr).toFixed(dec));
-        slPrice = nearestSupply
-          ? Number((nearestSupply.top + 0.5 * atr).toFixed(dec))
-          : Number((entryPrice + 1.5 * atr).toFixed(dec));
+        slPrice = Number((entryPrice + 1.5 * atr).toFixed(dec));
         tpPrice1 = Number((entryPrice - 1.5 * atr).toFixed(dec));
         tpPrice2 = Number((entryPrice - 3.0 * atr).toFixed(dec));
         strategyLabel = nearestSupply ? 'SMC SUPPLY REJECTION' : 'QUANT ATR TREND BREAKDOWN';
