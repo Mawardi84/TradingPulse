@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Instrument } from '../types/market';
+import { formatInstrumentPrice } from '../utils/formatters';
 import { Search, TrendingUp, TrendingDown, Radio, Activity, Plus } from 'lucide-react';
 import { RecentTickInfo, ConnectionStatus } from '../hooks/useRealTimeMarket';
 
@@ -209,7 +210,7 @@ export const WatchlistTickerBar: React.FC<{
                       : 'text-white'
                   }`}
                 >
-                  ${inst.price.toLocaleString(undefined, { minimumFractionDigits: inst.decimals, maximumFractionDigits: inst.decimals })}
+                  {formatInstrumentPrice(inst.price, inst.currency, inst.decimals)}
                 </div>
                 <div
                   className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${

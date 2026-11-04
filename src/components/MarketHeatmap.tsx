@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Instrument } from '../types/market';
+import { formatInstrumentPrice } from '../utils/formatters';
 import {
   TrendingUp,
   TrendingDown,
@@ -337,7 +338,7 @@ export const MarketHeatmap: React.FC<MarketHeatmapProps> = ({
                           <div>
                             <span className="text-[9px] uppercase opacity-75 block">HARGA SPOT</span>
                             <span className={`font-bold font-mono text-xs sm:text-sm ${color.text}`}>
-                              ${inst.price.toLocaleString(undefined, { minimumFractionDigits: inst.decimals })}
+                              {formatInstrumentPrice(inst.price, inst.currency, inst.decimals)}
                             </span>
                           </div>
 
@@ -436,7 +437,7 @@ export const MarketHeatmap: React.FC<MarketHeatmapProps> = ({
                     <div>
                       <span className="text-[9px] uppercase opacity-75 block">HARGA SPOT</span>
                       <span className={`font-bold font-mono text-xs sm:text-sm ${color.text}`}>
-                        ${inst.price.toLocaleString(undefined, { minimumFractionDigits: inst.decimals })}
+                        {formatInstrumentPrice(inst.price, inst.currency, inst.decimals)}
                       </span>
                     </div>
 

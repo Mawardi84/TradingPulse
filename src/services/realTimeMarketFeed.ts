@@ -186,6 +186,8 @@ export class RealTimeMarketFeed {
   private binanceSymbolMap: Map<string, string> = new Map();
   private reconnectTimer: any = null;
 
+  private basePrices: Map<string, { baseOpen: number; initialChange: number }> = new Map();
+
   constructor() {}
 
   public subscribe(cb: TickCallback): () => void {
@@ -217,12 +219,18 @@ export class RealTimeMarketFeed {
     if (this.isRunning) return;
     this.isRunning = true;
 
-    // Cache symbol mappings (e.g. PAXGUSDT -> XAUUSD)
+    // Cache symbol mappings and base open prices
     this.binanceSymbolMap.clear();
+    this.basePrices.clear();
     instruments.forEach((inst) => {
       if (inst.binanceSymbol) {
         this.binanceSymbolMap.set(inst.binanceSymbol.toUpperCase(), inst.symbol);
       }
+      const baseOpen = inst.price - (inst.change24h || 0);
+      this.basePrices.set(inst.symbol, {
+        baseOpen: baseOpen > 0 ? baseOpen : inst.price * 0.99,
+        initialChange: inst.change24h || 0,
+      });
     });
 
     // 1. Initial REST Sync to populate real prices immediately
@@ -419,8 +427,12 @@ export class RealTimeMarketFeed {
           const tickDir: 'up' | 'down' = newPrice >= currentPrice ? 'up' : 'down';
           this.priceCache.set(inst.symbol, newPrice);
 
-          const change = inst.change24h + (newPrice - inst.price);
-          const changePercent = inst.price > 0 ? (change / inst.price) * 100 : inst.changePercent24h;
+          const baseInfo = this.basePrices.get(inst.symbol) || {
+            baseOpen: inst.price - inst.change24h,
+            initialChange: inst.change24h,
+          };
+          const change = newPrice - baseInfo.baseOpen;
+          const changePercent = baseInfo.baseOpen > 0 ? (change / baseInfo.baseOpen) * 100 : 0;
 
           this.notify({
             symbol: inst.symbol,

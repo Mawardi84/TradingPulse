@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Instrument, Candle, AssetCategory } from '../types/market';
+import { formatInstrumentPrice } from '../utils/formatters';
 import { Search, ExternalLink, TrendingUp, TrendingDown, BarChart2, LayoutGrid, Table, Activity } from 'lucide-react';
 import { MarketHeatmap } from './MarketHeatmap';
 
@@ -179,7 +180,7 @@ export const ScreenerView: React.FC<{
                       {inst.category.replace('_', ' ')}
                     </td>
                     <td className="p-3.5 text-right font-bold text-white">
-                      {inst.price.toLocaleString(undefined, { minimumFractionDigits: inst.decimals })}
+                      {formatInstrumentPrice(inst.price, inst.currency, inst.decimals)}
                     </td>
                     <td className={`p-3.5 text-right font-bold flex items-center justify-end gap-1 ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {isUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
