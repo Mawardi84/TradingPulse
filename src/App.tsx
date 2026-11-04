@@ -16,6 +16,7 @@ import { MacroFormulasView } from './components/MacroFormulasView';
 import { WatchlistTickerBar } from './components/WatchlistTickerBar';
 import { ChartTradingWidget, PendingOrder } from './components/ChartTradingWidget';
 import { TradingChatPanel } from './components/TradingChatPanel';
+import { ChartTradingLayoutManager } from './components/ChartTradingLayoutManager';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -208,97 +209,22 @@ export function App() {
 
       <ErrorBoundary>
         {activeSection === 'chart' ? (
-          <main className="grid grid-cols-12 gap-0 p-0 min-h-[calc(100vh-60px)] lg:h-[calc(100vh-60px)] overflow-y-auto">
-            {/* Left Column: Chart Area (Span 12 on mobile/tablet, Span 8 on lg, Span 9 on xl) */}
-            <div className="col-span-12 lg:col-span-8 xl:col-span-9 flex flex-col gap-0 overflow-y-auto border-r border-white">
-              <WatchlistTickerBar
-                instruments={instruments}
-                selectedSymbol={selectedSymbol}
-                onSelectSymbol={setSelectedSymbol}
-                onAddCustomInstrument={addCustomInstrument}
-                recentTicks={recentTicks}
-                connectionStatus={connectionStatus}
-              />
-              <div className="flex-1 bg-black border-b border-white overflow-y-auto">
-                <TradingChartCanvas
-                  instrument={selectedInstrument}
-                  candles={candles}
-                  timeframe={timeframe}
-                  onTimeframeChange={setTimeframe}
-                  liveSource={connectionStatus.source}
-                  onExecuteTrade={(order) => {
-                    setActivePendingOrder({
-                      type: order.type,
-                      price: order.price,
-                      sl: order.sl,
-                      tp: order.tp,
-                      timestamp: Date.now(),
-                    });
-                  }}
-                  onOpenBotManager={() => {
-                    setActiveSection('bot');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                />
-              </div>
-              <div className="h-48 bg-black border-b border-white">
-                <ChartTradingWidget
-                  instrument={selectedInstrument}
-                  allInstruments={instruments}
-                  pendingOrder={activePendingOrder}
-                />
-              </div>
-            </div>
-
-            {/* Right Column: Analysis Panels (Span 12 on mobile, Span 4 on lg, Span 3 on xl) */}
-            <div className="col-span-12 lg:col-span-4 xl:col-span-3 bg-black border-l border-white overflow-y-auto">
-              <div className="flex items-center gap-0 bg-black border-b border-white p-0 overflow-x-auto text-[10px] font-bold">
-                {['technicals', 'fundamentals', 'sentiment', 'multiasset', 'chat'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setChartSideTab(tab as any)}
-                    className={`px-2 py-1 uppercase tracking-wider transition-colors border-r border-white ${
-                      chartSideTab === tab ? 'text-black bg-yellow-400' : 'text-white hover:bg-zinc-800'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {chartSideTab === 'technicals' && (
-                <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
-              )}
-              {chartSideTab === 'fundamentals' && (
-                <FundamentalSummaryPanel
-                  instrument={selectedInstrument}
-                  onOpenFullFundamental={handleJumpToFundamental}
-                />
-              )}
-              {chartSideTab === 'sentiment' && (
-                <MarketSentimentPanel
-                  instrument={selectedInstrument}
-                  news={INITIAL_MARKET_NEWS}
-                  onJumpToAsset={handleJumpToChart}
-                />
-              )}
-              {chartSideTab === 'multiasset' && (
-                <MultiAssetListPanel
-                  instruments={instruments}
-                  selectedSymbol={selectedSymbol}
-                  onSelectSymbol={setSelectedSymbol}
-                  recentTicks={recentTicks}
-                />
-              )}
-              {chartSideTab === 'chat' && (
-                <TradingChatPanel
-                  currentInstrument={selectedInstrument}
-                  candles={candles}
-                  onJumpToAsset={handleJumpToChart}
-                />
-              )}
-            </div>
-          </main>
+          <ChartTradingLayoutManager
+            instruments={instruments}
+            selectedSymbol={selectedSymbol}
+            setSelectedSymbol={setSelectedSymbol}
+            selectedInstrument={selectedInstrument}
+            timeframe={timeframe}
+            setTimeframe={setTimeframe}
+            candles={candles}
+            connectionStatus={connectionStatus}
+            recentTicks={recentTicks}
+            addCustomInstrument={addCustomInstrument}
+            setActiveSection={setActiveSection}
+            INITIAL_MARKET_NEWS={INITIAL_MARKET_NEWS}
+            handleJumpToChart={handleJumpToChart}
+            handleJumpToFundamental={handleJumpToFundamental}
+          />
         ) : (
           <main className="p-3 min-h-[calc(100vh-60px)] overflow-y-auto bg-black text-white">
             {activeSection === 'chat' && (
