@@ -119,8 +119,10 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
           setBalance(data.balance);
         } else {
           // Initialize balance if not exists
-          setDoc(userRef, { balance: 50000.0 }, { merge: true })
-            .catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`));
+          updateDoc(userRef, { 
+            balance: 50000.0,
+            updatedAt: serverTimestamp()
+          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`));
         }
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}`));

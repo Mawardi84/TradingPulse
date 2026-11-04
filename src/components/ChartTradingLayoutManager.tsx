@@ -173,11 +173,22 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
         const syncToCloud = async () => {
           setIsCloudSyncing(true);
           try {
-            await setDoc(doc(db, path), {
-              userId: user.uid,
-              layoutConfig: JSON.stringify(layout),
-              updatedAt: serverTimestamp(),
-            }, { merge: true });
+            const docRef = doc(db, path);
+            const docSnap = await getDocFromServer(docRef);
+            
+            if (!docSnap.exists()) {
+              await setDoc(docRef, {
+                userId: user.uid,
+                layoutConfig: JSON.stringify(layout),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+            } else {
+              await updateDoc(docRef, {
+                layoutConfig: JSON.stringify(layout),
+                updatedAt: serverTimestamp(),
+              });
+            }
           } catch (err) {
             handleFirestoreError(err, OperationType.WRITE, path);
           } finally {
