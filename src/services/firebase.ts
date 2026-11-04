@@ -63,42 +63,57 @@ export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
+// Helper to safely sync user profile to Firestore without failing authentication
+export const syncUserProfile = async (user: any) => {
+  if (!user) return;
+  const userPath = `users/${user.uid}`;
+  const userRef = doc(db, userPath);
+  try {
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        displayName: user.displayName || 'Trader',
+        email: user.email,
+        photoURL: user.photoURL || '',
+        balance: 50000.0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await setDoc(userRef, {
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.warn('Profile sync non-fatal warning:', err);
+  }
+};
 
 export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    
-    // Sync profile on login
-    const userPath = `users/${user.uid}`;
-    const userRef = doc(db, userPath);
-    
-    try {
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          balance: 50000.0,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        await setDoc(userRef, {
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-      }
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, userPath);
-    }
-    
+    await syncUserProfile(user);
     return user;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error (popup):', error);
+    throw error;
+  }
+};
+
+export const loginWithGoogleRedirect = async () => {
+  try {
+    const { signInWithRedirect } = await import('firebase/auth');
+    await signInWithRedirect(auth, googleProvider);
+  } catch (error) {
+    console.error('Login error (redirect):', error);
     throw error;
   }
 };
 
 export const logout = () => signOut(auth);
+
