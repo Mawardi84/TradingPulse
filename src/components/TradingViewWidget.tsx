@@ -5,6 +5,7 @@ export interface TradingViewWidgetProps {
   instrument: Instrument;
   timeframe: Timeframe;
   height?: string | number;
+  indicators?: string[];
 }
 
 export const getTradingViewSymbol = (symbol: string, category: string): string => {
@@ -73,6 +74,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
   instrument,
   timeframe,
   height = '620px',
+  indicators = [],
 }) => {
   const tvSymbol = useMemo(
     () => getTradingViewSymbol(instrument.symbol, instrument.category),
@@ -82,7 +84,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
   const interval = useMemo(() => getTradingViewInterval(timeframe), [timeframe]);
 
   const widgetUrl = useMemo(() => {
-    const params = new URLSearchParams({
+    const params: any = {
       frameElementId: 'tradingview_advanced_chart',
       symbol: tvSymbol,
       interval: interval,
@@ -96,10 +98,25 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
       withdateranges: '1',
       hide_side_toolbar: '0',
       allow_symbol_change: '1',
-    });
+    };
 
-    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
-  }, [tvSymbol, interval]);
+    if (indicators.length > 0) {
+      const studyMap: Record<string, string> = {
+        'RSI': 'RSI@tv-basicstudies',
+        'MACD': 'MACD@tv-basicstudies',
+      };
+      const activeStudies = indicators
+        .map(i => studyMap[i])
+        .filter(Boolean);
+      
+      if (activeStudies.length > 0) {
+        params.studies = JSON.stringify(activeStudies);
+      }
+    }
+
+    const searchParams = new URLSearchParams(params);
+    return `https://s.tradingview.com/widgetembed/?${searchParams.toString()}`;
+  }, [tvSymbol, interval, indicators]);
 
   return (
     <div className="w-full rounded-xl overflow-hidden border border-slate-800 bg-[#0B0F17] shadow-2xl relative flex flex-col">

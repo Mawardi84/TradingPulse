@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MarketNewsItem, Instrument, AssetCategory } from '../types/market';
-import { Newspaper, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Globe, Sparkles, BrainCircuit, Gauge, ChevronRight, AlertCircle } from 'lucide-react';
+import { Newspaper, RefreshCw, TrendingUp, TrendingDown, ExternalLink, Globe, Sparkles, BrainCircuit, Gauge, ChevronRight, AlertCircle, Check } from 'lucide-react';
 
 export const MarketNewsView: React.FC<{
     news: MarketNewsItem[];
@@ -11,6 +11,7 @@ export const MarketNewsView: React.FC<{
 }> = ({ news, isRefreshing, onRefreshNews, onJumpToAsset }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [selectedNews, setSelectedNews] = useState<MarketNewsItem | null>(news[0] || null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [aiAnalysis, setAiAnalysis] = useState<{
         score: number;
@@ -18,6 +19,9 @@ export const MarketNewsView: React.FC<{
         summary: string;
         sensitivity: { asset: string; effect: string }[];
     } | null>(null);
+
+    const [isSynthesizing, setIsSynthesizing] = useState(false);
+    const [synthesisResult, setSynthesisResult] = useState<string | null>(null);
 
     const categories = [
         { id: 'all', label: 'Semua Berita' },
@@ -30,6 +34,46 @@ export const MarketNewsView: React.FC<{
     ];
 
     const filteredNews = news.filter(n => selectedCategory === 'all' || n.category === selectedCategory);
+
+    const toggleNewsSelection = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setSelectedIds(newSet);
+    };
+
+    const handleNarrativeSynthesis = async () => {
+        if (selectedIds.size < 2) return;
+        setIsSynthesizing(true);
+        setSynthesisResult(null);
+        
+        const selectedItems = news.filter(n => selectedIds.has(n.id));
+        const narrativeContext = selectedItems.map(n => `- ${n.title}: ${n.summary}`).join('\n');
+        
+        const prompt = `Lakukan sintesis narasi dari beberapa berita pasar berikut untuk menentukan bias pasar global terpadu:
+${narrativeContext}
+
+Format output:
+[GLOBAL BIAS: BULLISH/BEARISH/NEUTRAL]
+RINGKASAN SINTESIS: (3-4 kalimat ringkas)
+KONFLUENSI UTAMA: (2-3 poin bullet)
+ESTIMASI ARAH ASSET: (Sebutkan 3-5 asset utama dan arahnya)`;
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: prompt }),
+            });
+            const data = await res.json();
+            if (data.reply) setSynthesisResult(data.reply);
+        } catch (err) {
+            console.error('Synthesis failed:', err);
+        } finally {
+            setIsSynthesizing(false);
+        }
+    };
 
     const handleAiDeepDive = async (item: MarketNewsItem) => {
         setIsAnalyzing(true);
@@ -107,15 +151,43 @@ Berikan output dalam format JSON mentah (hanya JSON):
                     </div>
                 </div>
 
-                <button
-                    onClick={onRefreshNews}
-                    disabled={isRefreshing}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold uppercase rounded transition-colors shadow disabled:opacity-50 cursor-pointer"
-                >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span>{isRefreshing ? 'Memperbarui...' : 'Perbarui Berita Live'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    {selectedIds.size >= 2 && (
+                        <button
+                            onClick={handleNarrativeSynthesis}
+                            disabled={isSynthesizing}
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold uppercase rounded shadow-lg transition-all active:scale-95"
+                        >
+                            <BrainCircuit className={`w-3.5 h-3.5 ${isSynthesizing ? 'animate-pulse' : ''}`} />
+                            <span>{isSynthesizing ? 'Menyintesis...' : `Sintesis ${selectedIds.size} Berita`}</span>
+                        </button>
+                    )}
+                    <button
+                        onClick={onRefreshNews}
+                        disabled={isRefreshing}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold uppercase rounded transition-colors shadow disabled:opacity-50 cursor-pointer"
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        <span>{isRefreshing ? 'Memperbarui...' : 'Perbarui Berita Live'}</span>
+                    </button>
+                </div>
             </div>
+
+            {/* Narrative Synthesis Result (Conditional) */}
+            {synthesisResult && (
+                <div className="bg-purple-950/20 border border-purple-500/40 p-5 rounded-lg space-y-3 animate-in slide-in-from-top duration-500">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-purple-400">
+                            <Sparkles className="w-5 h-5" />
+                            <h2 className="text-sm font-bold uppercase tracking-widest">AstraBot Narrative Synthesis: Unified Market Bias</h2>
+                        </div>
+                        <button onClick={() => setSynthesisResult(null)} className="text-[9px] text-zinc-500 hover:text-white uppercase font-bold">Close Analysis [X]</button>
+                    </div>
+                    <div className="text-[11px] text-purple-100 leading-relaxed whitespace-pre-wrap font-sans bg-black/40 p-4 rounded border border-purple-900/30">
+                        {synthesisResult}
+                    </div>
+                </div>
+            )}
 
             {/* Category Filter Pills */}
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -142,6 +214,7 @@ Berikan output dalam format JSON mentah (hanya JSON):
                         const isBullish = item.sentiment === 'Bullish';
                         const isBearish = item.sentiment === 'Bearish';
                         const isSelected = selectedNews?.id === item.id;
+                        const isBatchSelected = selectedIds.has(item.id);
 
                         return (
                             <div
@@ -150,9 +223,19 @@ Berikan output dalam format JSON mentah (hanya JSON):
                                 className={`p-4 bg-[#111722] border transition-all cursor-pointer relative group ${
                                     isSelected
                                         ? 'border-yellow-500 bg-yellow-500/5 shadow-[0_0_15px_rgba(234,179,8,0.1)]'
+                                        : isBatchSelected 
+                                        ? 'border-purple-500 bg-purple-500/5'
                                         : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
                                 }`}
                             >
+                                <div className="absolute top-4 right-4 z-10">
+                                    <button 
+                                        onClick={(e) => toggleNewsSelection(item.id, e)}
+                                        className={`w-4 h-4 border flex items-center justify-center transition-colors ${isBatchSelected ? 'bg-purple-600 border-purple-400' : 'border-slate-600 group-hover:border-slate-400'}`}
+                                    >
+                                        {isBatchSelected && <Check className="w-3 h-3 text-white" />}
+                                    </button>
+                                </div>
                                 <div className="flex items-center justify-between gap-2 mb-2">
                                     <div className="flex items-center gap-2">
                                         <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold rounded uppercase">

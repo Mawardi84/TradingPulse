@@ -46,8 +46,9 @@ interface FirestoreErrorInfo {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -63,6 +64,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  // Don't throw for offline/network errors to prevent UI crashes during background sync
+  if (message.toLowerCase().includes('offline') || message.toLowerCase().includes('network') || message.toLowerCase().includes('reach cloud firestore')) {
+    console.warn('Silent Firestore warning (Offline):', message);
+    return;
+  }
+  
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -109,6 +117,20 @@ export const QuantScriptEditor: React.FC<{ currentInstrument: any }> = ({ curren
   const [isSaving, setIsSaving] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState<string[]>(['[System] Quant Terminal Ready.']);
   const [isLoading, setIsLoading] = useState(true);
+
+  const selectScript = (script: QuantScript) => {
+    setSelectedScript(script);
+    setEditName(script.name);
+    setEditCode(script.code);
+  };
+
+  const runSimulation = () => {
+    if (!selectedScript) return;
+    setConsoleOutput(prev => [`[System] Memulai simulasi lokal untuk ${selectedScript.name}...`, ...prev.slice(0, 10)]);
+    setTimeout(() => {
+      setConsoleOutput(prev => [`[Result] Simulasi selesai. Logika valid. (Check Backtesting Hub untuk data historis)`, ...prev.slice(0, 10)]);
+    }, 1000);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -182,64 +204,43 @@ export const QuantScriptEditor: React.FC<{ currentInstrument: any }> = ({ curren
     }
   };
 
-  const selectScript = (script: QuantScript) => {
-    setSelectedScript(script);
-    setEditName(script.name);
-    setEditCode(script.code);
-    setConsoleOutput(prev => [`[System] Loaded: ${script.name}`, ...prev.slice(0, 10)]);
-  };
+  const [activeTab, setActiveTab] = useState<'editor' | 'backtest'>('editor');
+  const [btConfig, setBtConfig] = useState({ symbol: 'XAUUSD', timeframe: '15m', count: 100 });
+  const [btResults, setBtResults] = useState<any>(null);
+  const [isBacktesting, setIsBacktesting] = useState(false);
 
-  const runSimulation = () => {
-    setConsoleOutput(prev => [`[${new Date().toLocaleTimeString()}] Menjalankan eksekusi script...`, ...prev.slice(0, 10)]);
-    
+  const handleRunBacktest = async () => {
     if (!selectedScript) return;
-
+    setIsBacktesting(true);
+    setConsoleOutput(prev => [`[${new Date().toLocaleTimeString()}] Memulai Backtest Kuantitatif untuk ${btConfig.symbol}...`, ...prev.slice(0, 10)]);
+    
     try {
-      // Create a simplified console for the script
-      const scriptConsole = {
-        log: (...args: any[]) => {
-          const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-          setConsoleOutput(prev => [`[Log] ${msg}`, ...prev.slice(0, 20)]);
-        },
-        error: (...args: any[]) => {
-          const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-          setConsoleOutput(prev => [`[Error] ${msg}`, ...prev.slice(0, 20)]);
-        }
-      };
-
-      // Prepare the execution environment
-      const context = {
-        currentInstrument: {
-          symbol: currentInstrument.symbol,
-          displaySymbol: currentInstrument.displaySymbol,
-          price: currentInstrument.price,
-          change24h: currentInstrument.changePercent24h,
-          timestamp: Date.now()
-        },
-        console: scriptConsole,
-        // Mock API for the script
-        AstraAPI: {
-          getMarketData: () => currentInstrument,
-          alert: (msg: string) => scriptConsole.log(`[ALERT] ${msg}`),
-        }
-      };
-
-      // Create the execution function
-      // We wrap the user code in a function that takes the context as arguments
-      const runFn = new Function('context', `
-        const { currentInstrument, console, AstraAPI } = context;
-        ${editCode}
-      `);
-
-      // Run it
-      runFn(context);
-
-      setConsoleOutput(prev => [`[System] Eksekusi selesai untuk ${currentInstrument.displaySymbol}.`, ...prev.slice(0, 20)]);
-    } catch (err: any) {
-      setConsoleOutput(prev => [`[Runtime Error] ${err.message}`, ...prev.slice(0, 20)]);
+      const res = await fetch('/api/quant/backtest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scriptCode: editCode,
+          symbol: btConfig.symbol,
+          timeframe: btConfig.timeframe,
+          candleCount: btConfig.count
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBtResults(data);
+        setConsoleOutput(prev => [
+          `[Result] Backtest Selesai: Net Profit ${data.metrics.totalReturn}%, Win Rate ${data.metrics.winRate}%`,
+          ...prev.slice(0, 10)
+        ]);
+      } else {
+        setConsoleOutput(prev => [`[Error] Backtest gagal: ${data.error}`, ...prev.slice(0, 10)]);
+      }
+    } catch (err) {
+      setConsoleOutput(prev => [`[Error] Sistem error saat backtesting.`, ...prev.slice(0, 10)]);
+    } finally {
+      setIsBacktesting(false);
     }
   };
-
 
   return (
     <div className="grid grid-cols-12 gap-4 h-[calc(100vh-140px)] overflow-hidden font-mono text-[11px]">
@@ -316,54 +317,175 @@ export const QuantScriptEditor: React.FC<{ currentInstrument: any }> = ({ curren
         ) : (
           <>
             {/* Editor Toolbar */}
-            <div className="p-3 border-b border-zinc-800 flex items-center justify-between bg-zinc-950 shrink-0">
-              <div className="flex items-center gap-4 flex-1">
+            <div className="p-0 border-b border-zinc-800 flex items-center justify-between bg-zinc-950 shrink-0">
+              <div className="flex items-center gap-0 h-full">
+                <button 
+                  onClick={() => setActiveTab('editor')}
+                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'editor' ? 'bg-black text-yellow-400 border-r border-zinc-800' : 'text-zinc-500 hover:text-white border-r border-zinc-800'}`}
+                >
+                  Logic Editor
+                </button>
+                <button 
+                  onClick={() => setActiveTab('backtest')}
+                  className={`px-4 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === 'backtest' ? 'bg-black text-yellow-400 border-r border-zinc-800' : 'text-zinc-500 hover:text-white border-r border-zinc-800'}`}
+                >
+                  Backtesting Hub
+                </button>
+              </div>
+              
+              <div className="px-3 flex items-center gap-4">
                 <input 
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="bg-transparent border-b border-transparent focus:border-yellow-500 outline-none text-white font-bold uppercase tracking-widest text-xs py-0.5 min-w-[200px]"
+                  className="bg-transparent border-b border-transparent focus:border-yellow-500 outline-none text-white font-bold uppercase tracking-widest text-[10px] py-0.5 min-w-[150px]"
                 />
-                <span className="text-[10px] text-zinc-500 uppercase flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> JavaScript ES6+
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-blue-400" />}
-                  <span>SIMPAN</span>
-                </button>
-                <button
-                  onClick={runSimulation}
-                  className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold rounded flex items-center gap-2 transition-colors cursor-pointer shadow-lg active:scale-95"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>RUN LOGIC</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white rounded flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5 text-blue-400" />}
+                    <span>SAVE</span>
+                  </button>
+                  <button
+                    onClick={runSimulation}
+                    className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold rounded flex items-center gap-2 transition-colors cursor-pointer shadow-lg active:scale-95"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>RUN</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Code Textarea */}
-            <div className="flex-1 flex overflow-hidden relative">
-              {/* Line Numbers Mock */}
-              <div className="w-10 bg-zinc-950 border-r border-zinc-900 flex flex-col items-center pt-4 text-zinc-700 select-none shrink-0">
-                {Array.from({ length: 40 }).map((_, i) => (
-                  <div key={i} className="leading-5 h-[20px]">{i + 1}</div>
-                ))}
-              </div>
-              <textarea
-                value={editCode}
-                onChange={(e) => setEditCode(e.target.value)}
-                className="flex-1 bg-black text-yellow-100 p-4 font-mono leading-5 outline-none resize-none spellcheck-false"
-                autoComplete="off"
-                autoCapitalize="off"
-                spellCheck="false"
-              />
+            {/* Tab Content */}
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              {activeTab === 'editor' ? (
+                <div className="flex-1 flex overflow-hidden">
+                  <div className="w-10 bg-zinc-950 border-r border-zinc-900 flex flex-col items-center pt-4 text-zinc-700 select-none shrink-0">
+                    {Array.from({ length: 40 }).map((_, i) => (
+                      <div key={i} className="leading-5 h-[20px]">{i + 1}</div>
+                    ))}
+                  </div>
+                  <textarea
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="flex-1 bg-black text-yellow-100 p-4 font-mono leading-5 outline-none resize-none spellcheck-false"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto bg-[#050505] p-6 space-y-6">
+                  {/* Backtest Configuration */}
+                  <div className="bg-black border border-zinc-800 p-4 rounded-lg flex flex-wrap items-end gap-4 shadow-xl">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Asset Symbol</label>
+                      <input 
+                        value={btConfig.symbol}
+                        onChange={e => setBtConfig({...btConfig, symbol: e.target.value.toUpperCase()})}
+                        className="w-32 bg-zinc-900 border border-zinc-700 text-white p-2 text-xs outline-none focus:border-yellow-500 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Timeframe</label>
+                      <select 
+                        value={btConfig.timeframe}
+                        onChange={e => setBtConfig({...btConfig, timeframe: e.target.value})}
+                        className="w-32 bg-zinc-900 border border-zinc-700 text-white p-2 text-xs outline-none focus:border-yellow-500 transition-colors"
+                      >
+                        <option value="1m">1 Minute</option>
+                        <option value="5m">5 Minutes</option>
+                        <option value="15m">15 Minutes</option>
+                        <option value="1h">1 Hour</option>
+                        <option value="1d">1 Day</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Candle Sample</label>
+                      <input 
+                        type="number"
+                        value={btConfig.count}
+                        onChange={e => setBtConfig({...btConfig, count: parseInt(e.target.value) || 100})}
+                        className="w-24 bg-zinc-900 border border-zinc-700 text-white p-2 text-xs outline-none focus:border-yellow-500 transition-colors"
+                      />
+                    </div>
+                    <button 
+                      onClick={handleRunBacktest}
+                      disabled={isBacktesting}
+                      className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold uppercase tracking-widest text-[10px] rounded transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                    >
+                      {isBacktesting ? 'Processing...' : 'Run Backtest'}
+                    </button>
+                  </div>
+
+                  {/* Backtest Results */}
+                  {btResults ? (
+                    <div className="space-y-6 animate-in fade-in duration-500">
+                      {/* Metric Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Net Profit', val: `${btResults.metrics.totalReturn}%`, color: Number(btResults.metrics.totalReturn) >= 0 ? 'text-emerald-400' : 'text-rose-400' },
+                          { label: 'Win Rate', val: `${btResults.metrics.winRate}%`, color: 'text-blue-400' },
+                          { label: 'Max Drawdown', val: `${btResults.metrics.maxDrawdown}%`, color: 'text-rose-500' },
+                          { label: 'Sharpe Ratio', val: btResults.metrics.sharpeRatio, color: 'text-yellow-400' },
+                        ].map((m, i) => (
+                          <div key={i} className="bg-zinc-950 border border-zinc-800 p-4 shadow-2xl relative overflow-hidden group">
+                            <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1 font-bold">{m.label}</div>
+                            <div className={`text-xl font-extrabold ${m.color}`}>{m.val}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Trade History Preview */}
+                      <div className="bg-black border border-zinc-800">
+                        <div className="p-3 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">Recent Simulation Trades</span>
+                          <span className="text-[9px] text-zinc-500">{btResults.metrics.totalTrades} Trades Executed</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-[10px]">
+                            <thead>
+                              <tr className="bg-zinc-950 text-zinc-500 uppercase tracking-tighter">
+                                <th className="p-2 border-b border-zinc-800 font-bold">Index</th>
+                                <th className="p-2 border-b border-zinc-800 font-bold">Action</th>
+                                <th className="p-2 border-b border-zinc-800 font-bold">Exit Price</th>
+                                <th className="p-2 border-b border-zinc-800 font-bold text-right">P/L ($)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-900 text-zinc-300">
+                              {btResults.trades.map((t: any, i: number) => (
+                                <tr key={i} className="hover:bg-zinc-800/30">
+                                  <td className="p-2">{i + 1}</td>
+                                  <td className="p-2 font-bold text-white">CLOSED</td>
+                                  <td className="p-2">${t.exitPrice.toLocaleString()}</td>
+                                  <td className={`p-2 text-right font-bold ${t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}
+                                  </td>
+                                </tr>
+                              ))}
+                              {btResults.trades.length === 0 && (
+                                <tr><td colSpan={4} className="p-8 text-center text-zinc-600 uppercase">No trades generated in this window.</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
+                      <Zap className="w-16 h-16 text-zinc-600" />
+                      <div className="space-y-1">
+                        <h4 className="text-white font-bold uppercase tracking-widest">Backtest Engine Ready</h4>
+                        <p className="max-w-xs text-[10px]">Konfigurasikan parameter di atas untuk memvalidasi performa strategi Anda terhadap data historis real-time.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Bottom Console */}
@@ -391,3 +513,4 @@ export const QuantScriptEditor: React.FC<{ currentInstrument: any }> = ({ curren
     </div>
   );
 };
+

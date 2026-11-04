@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Building2,
 } from 'lucide-react';
 
 interface Phase4HubViewProps {
@@ -395,22 +396,31 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
                 <tr className="bg-black border-b border-zinc-800 text-zinc-400 text-[10px] uppercase">
                   <th className="p-3">Simbol</th>
                   <th className="p-3">Nama Aset</th>
-                  <th className="p-3">Kategori / Exchange</th>
-                  <th className="p-3 text-right">Harga Spot Live</th>
-                  <th className="p-3 text-right">Estimasi Blok Volume</th>
-                  <th className="p-3 text-right">Nilai Notional</th>
-                  <th className="p-3 text-center">Sentimen Smart Money</th>
+                  <th className="p-3">Exchange</th>
+                  <th className="p-3 text-right">Spot Live</th>
+                  <th className="p-3 text-right">Block Volume</th>
+                  <th className="p-3 text-right">Notional Value</th>
+                  <th className="p-3 text-center">Institutional Score</th>
+                  <th className="p-3 text-center">Smart Money Sent.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-900 text-zinc-200">
                 {instruments.map((inst) => {
                   const isUp = inst.changePercent24h >= 0;
-                  const blockVol = Math.max(10, Math.round(inst.volume24h * 0.04));
+                  const isIdx = inst.currency === 'IDR' || inst.exchange === 'IDX';
+                  
+                  // Institutional Mapping Logic
+                  const blockVolRatio = isIdx ? 0.08 : 0.04; // Higher block ratio for IDX
+                  const blockVol = Math.max(10, Math.round(inst.volume24h * blockVolRatio));
                   const notional = inst.price * blockVol;
+                  
                   const formattedPrice = formatInstrumentPrice(inst.price, inst.currency, inst.decimals);
-                  const formattedNotional = inst.currency === 'IDR'
+                  const formattedNotional = isIdx
                     ? `Rp${(notional / 1e9).toFixed(2)}B`
                     : `$${(notional / 1e6).toFixed(2)}M`;
+
+                  // Calc Institutional Presence Score (0-100)
+                  const instScore = Math.min(98, Math.round(40 + (Math.abs(inst.changePercent24h) * 10) + (inst.volume24h > 1000000 ? 20 : 5)));
 
                   return (
                     <tr key={inst.symbol} className="hover:bg-zinc-900/60">
@@ -421,12 +431,20 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
                       <td className="p-3 text-right">{blockVol.toLocaleString()} unit</td>
                       <td className="p-3 text-right text-emerald-400 font-bold">{formattedNotional}</td>
                       <td className="p-3 text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="font-bold text-[10px]">{instScore}</span>
+                          <div className="w-12 h-1 bg-zinc-800 rounded-full mt-0.5 overflow-hidden">
+                            <div className="bg-blue-500 h-full" style={{ width: `${instScore}%` }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
                           isUp
                             ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
                             : 'bg-rose-950 text-rose-300 border-rose-800'
                         }`}>
-                          {isUp ? 'BULLISH ACCUMULATION' : 'BEARISH DISTRIBUTION'}
+                          {isUp ? 'INSTITUTIONAL ACCUMULATION' : 'INSTITUTIONAL DISTRIBUTION'}
                         </span>
                       </td>
                     </tr>
@@ -434,6 +452,74 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* New Section: IDX Institutional Shareholder Simulator */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
+            <div className="bg-zinc-950 border border-white p-4 space-y-4">
+              <div className="border-b border-zinc-800 pb-2 flex items-center justify-between">
+                <span className="font-bold text-white uppercase flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-yellow-400" />
+                  Top 10 Institutional Holders (IDX Simulator)
+                </span>
+                <span className="text-[10px] text-zinc-500 italic">Data Source: Laporan Kustodian (Simulated)</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-[10px] text-zinc-400 border-b border-zinc-900 pb-1">
+                  <span>INSTITUTION NAME</span>
+                  <span>HOLDING (%)</span>
+                </div>
+                {[
+                  { name: 'BlackRock Advisors LLC', stake: '8.42%' },
+                  { name: 'The Vanguard Group, Inc.', stake: '7.15%' },
+                  { name: 'Government of Singapore (GIC)', stake: '5.20%' },
+                  { name: 'PT Taspen (Persero)', stake: '4.85%' },
+                  { name: 'BPJS Ketenagakerjaan', stake: '3.92%' },
+                  { name: 'Fidelity Management & Research', stake: '3.10%' },
+                  { name: 'JPMorgan Asset Management', stake: '2.45%' },
+                  { name: 'Norges Bank Investment Management', stake: '1.98%' },
+                  { name: 'State Street Global Advisors', stake: '1.75%' },
+                  { name: 'Schroders Investment Management', stake: '1.52%' },
+                ].map((holder, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[11px] hover:bg-zinc-900 p-1 rounded transition-colors">
+                    <span className="text-zinc-300">{idx + 1}. {holder.name}</span>
+                    <span className="text-emerald-400 font-bold">{holder.stake}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border border-white p-4 space-y-4">
+              <div className="border-b border-zinc-800 pb-2">
+                <span className="font-bold text-white uppercase flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-yellow-400" />
+                  Net Institutional Flow (Weekly Accumulation)
+                </span>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-end justify-around h-48 border-b border-zinc-800 pb-2 px-4">
+                  {[20, 35, -15, 45, 60, 55, 80].map((val, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-2 group relative">
+                      <div 
+                        style={{ height: `${Math.abs(val)}%` }} 
+                        className={`w-8 rounded-t transition-all ${val > 0 ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-rose-500 hover:bg-rose-400'}`}
+                      />
+                      <span className="text-[8px] text-zinc-500">Day {idx + 1}</span>
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white text-black text-[9px] px-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {val > 0 ? '+' : ''}{val}B IDR
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="p-3 bg-black border border-zinc-800 text-[10px] text-zinc-400 italic">
+                  <span className="text-yellow-400 font-bold not-italic mr-2">ANALISIS AI:</span>
+                  Deteksi akumulasi agresif oleh "Smart Money" dalam 3 hari terakhir. Rekomendasi: Tunggu konfirmasi breakout volume pada timeframe H1 untuk entri long.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

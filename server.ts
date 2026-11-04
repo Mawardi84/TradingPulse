@@ -548,6 +548,108 @@ app.get('/api/mt5/logs', (req: Request, res: Response) => {
   });
 });
 
+app.post('/api/quant/backtest', async (req: Request, res: Response) => {
+  try {
+    const { scriptCode, symbol, timeframe, initialBalance = 10000, candleCount = 100 } = req.body;
+
+    // 1. Resolve Symbol & Fetch Candles
+    const tvSymbol = resolveTradingViewSymbol(symbol);
+    const tvTf = resolveTradingViewTimeframe(timeframe);
+    const rawCandles = await withTimeout(getCandles({ symbol: tvSymbol, timeframe: tvTf as any, count: candleCount }), 6000);
+
+    if (!Array.isArray(rawCandles) || rawCandles.length < 10) {
+      return res.status(400).json({ success: false, error: 'Insufficient candle data for backtest.' });
+    }
+
+    // 2. Prepare Sandbox execution function
+    const strategyFn = new Function('marketData', 'context', `
+      const { price, change24h, high, low, open, volume, symbol } = marketData;
+      const { console } = context;
+      ${scriptCode}
+      // The script is expected to set a global 'result' or return a result object
+      // For this simulator, we expect evaluateStrategy to be defined or logic to return an action
+      if (typeof evaluateStrategy === 'function') return evaluateStrategy(marketData);
+      return { action: 'HOLD' };
+    `);
+
+    // 3. Run Simulation
+    let currentBalance = initialBalance;
+    let position: { type: 'BUY' | 'SELL'; entryPrice: number; size: number } | null = null;
+    const trades: any[] = [];
+    const equityCurve: number[] = [];
+
+    for (let i = 0; i < rawCandles.length; i++) {
+      const c = rawCandles[i];
+      const marketData = {
+        symbol,
+        price: Number(c.close),
+        open: Number(c.open),
+        high: Number(c.high),
+        low: Number(c.low),
+        volume: Number(c.volume),
+        change24h: i > 0 ? ((Number(c.close) - Number(rawCandles[i - 1].close)) / Number(rawCandles[i - 1].close)) * 100 : 0
+      };
+
+      try {
+        const signal = strategyFn(marketData, { console: { log: () => {} } });
+
+        // Logic: Close existing position if signal is opposite or if hit SL/TP (simplified)
+        if (position) {
+          const pnl = position.type === 'BUY' ? (marketData.price - position.entryPrice) : (position.entryPrice - marketData.price);
+          const tradePnl = (pnl / position.entryPrice) * currentBalance;
+          
+          if (signal?.action && signal.action !== position.type && signal.action !== 'HOLD') {
+            // Close & Record
+            currentBalance += tradePnl;
+            trades.push({ exitPrice: marketData.price, pnl: tradePnl, time: c.time });
+            position = null;
+          }
+        }
+
+        // Open position
+        if (!position && signal?.action && (signal.action === 'BUY' || signal.action === 'SELL')) {
+          position = { type: signal.action, entryPrice: marketData.price, size: 1 };
+        }
+      } catch (err) {
+        // Skip faulty logic steps
+      }
+      equityCurve.push(currentBalance);
+    }
+
+    // 4. Calculate Stats
+    const totalReturn = ((currentBalance - initialBalance) / initialBalance) * 100;
+    const winRate = trades.length > 0 ? (trades.filter(t => t.pnl > 0).length / trades.length) * 100 : 0;
+    
+    // Max Drawdown calculation
+    let maxEquity = initialBalance;
+    let maxDD = 0;
+    for (const e of equityCurve) {
+      if (e > maxEquity) maxEquity = e;
+      const dd = ((maxEquity - e) / maxEquity) * 100;
+      if (dd > maxDD) maxDD = dd;
+    }
+
+    return res.json({
+      success: true,
+      metrics: {
+        initialBalance,
+        finalBalance: currentBalance,
+        totalReturn: totalReturn.toFixed(2),
+        winRate: winRate.toFixed(1),
+        maxDrawdown: maxDD.toFixed(2),
+        totalTrades: trades.length,
+        sharpeRatio: (totalReturn / (maxDD || 1)).toFixed(2) // Simplified Sharpe
+      },
+      equityCurve,
+      trades: trades.slice(-20)
+    });
+
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
 app.post('/api/mt5/dispatch', async (req: Request, res: Response) => {
   try {
     const { symbol, action, volume, sl, tp } = req.body;

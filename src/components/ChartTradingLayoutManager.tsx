@@ -53,8 +53,9 @@ interface FirestoreErrorInfo {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -70,6 +71,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  // Don't throw for offline/network errors to prevent UI crashes during background sync
+  if (message.toLowerCase().includes('offline') || message.toLowerCase().includes('network') || message.toLowerCase().includes('reach cloud firestore')) {
+    console.warn('Silent Firestore warning (Offline):', message);
+    return;
+  }
+  
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -88,6 +96,7 @@ interface ChartTradingLayoutManagerProps {
   INITIAL_MARKET_NEWS: any[];
   handleJumpToChart: (sym: string) => void;
   handleJumpToFundamental: (sym: string) => void;
+  activeIndicators: string[];
 }
 
 export interface ChartLayoutConfig {
@@ -115,6 +124,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
   INITIAL_MARKET_NEWS,
   handleJumpToChart,
   handleJumpToFundamental,
+  activeIndicators,
 }) => {
   const [layout, setLayout] = useState<ChartLayoutConfig>(() => {
     try {
@@ -174,7 +184,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
           setIsCloudSyncing(true);
           try {
             const docRef = doc(db, path);
-            const docSnap = await getDocFromServer(docRef);
+            const docSnap = await getDoc(docRef);
             
             if (!docSnap.exists()) {
               await setDoc(docRef, {
@@ -184,10 +194,10 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
                 updatedAt: serverTimestamp(),
               });
             } else {
-              await updateDoc(docRef, {
+              await setDoc(docRef, {
                 layoutConfig: JSON.stringify(layout),
                 updatedAt: serverTimestamp(),
-              });
+              }, { merge: true });
             }
           } catch (err) {
             handleFirestoreError(err, OperationType.WRITE, path);
@@ -335,6 +345,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
                 setActiveSection('bot');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
+              activeIndicators={activeIndicators}
             />
           </div>
 

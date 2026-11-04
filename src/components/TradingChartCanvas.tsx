@@ -12,6 +12,7 @@ interface TradingChartCanvasProps {
   liveSource: string;
   onExecuteTrade?: (order: { type: 'BUY' | 'SELL'; price: number; sl: number; tp: number }) => void;
   onOpenBotManager?: () => void;
+  activeIndicators: string[];
 }
 
 export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
@@ -21,6 +22,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
   onTimeframeChange,
   onExecuteTrade,
   onOpenBotManager,
+  activeIndicators,
 }) => {
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1D'];
 
@@ -65,7 +67,12 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
         />
 
         {/* Official TradingView Interactive Advanced Chart Engine */}
-        <TradingViewWidget instrument={instrument} timeframe={timeframe} height={600} />
+        <TradingViewWidget 
+          instrument={instrument} 
+          timeframe={timeframe} 
+          height={600} 
+          indicators={activeIndicators}
+        />
       </div>
 
       {/* Automatic Live Supply & Demand Indicator Panel */}

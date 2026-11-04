@@ -11,8 +11,7 @@ import {
   query, 
   orderBy, 
   serverTimestamp,
-  getDoc,
-  getDocFromServer
+  getDoc
 } from 'firebase/firestore';
 import { auth } from '../services/firebase';
 import { Instrument } from '../types/market';
@@ -44,8 +43,9 @@ interface FirestoreErrorInfo {
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -61,6 +61,13 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+
+  // Don't throw for offline/network errors to prevent UI crashes during background sync
+  if (message.toLowerCase().includes('offline') || message.toLowerCase().includes('network') || message.toLowerCase().includes('reach cloud firestore')) {
+    console.warn('Silent Firestore warning (Offline):', message);
+    return;
+  }
+
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -122,7 +129,13 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
           updateDoc(userRef, { 
             balance: 50000.0,
             updatedAt: serverTimestamp()
-          }).catch(err => handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}`));
+          }).catch(err => {
+            console.warn('Initial balance sync failed, trying setDoc merge');
+            setDoc(userRef, { 
+              balance: 50000.0, 
+              updatedAt: serverTimestamp() 
+            }, { merge: true }).catch(e => handleFirestoreError(e, OperationType.WRITE, `users/${user.uid}`));
+          });
         }
       }
     }, (error) => handleFirestoreError(error, OperationType.GET, `users/${user.uid}`));

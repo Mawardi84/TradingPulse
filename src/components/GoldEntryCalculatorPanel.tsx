@@ -58,6 +58,7 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [selectedResult, setSelectedResult] = useState<EntryCalculationResult | null>(null);
+  const [isScalpMode, setIsScalpMode] = useState<boolean>(false);
 
   // Sync state if current price shifts dramatically
   useEffect(() => {
@@ -83,12 +84,35 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
 
   const buySidewayOffsets = [0.10, 0.13, 0.15, 0.17];
   const buyTrendKuatOffsets = [0.17, 0.18, 0.20, 0.29, 0.30, 0.31];
+  const scalpOffsets = [0.05, 0.07, 0.08];
 
   const sellSidewayOffsets = [0.10, 0.13, 0.15, 0.17];
   const sellTrendKuatOffsets = [0.17, 0.18, 0.20, 0.29, 0.30, 0.31];
 
   const calculateEntries = (): EntryCalculationResult[] => {
     const results: EntryCalculationResult[] = [];
+
+    if (isScalpMode) {
+      // Specialized Scalp Logic (M1/M5 Sniper)
+      const basePrice = entryType === 'BUY_LIMIT' ? resistenM5 : supportM5;
+      scalpOffsets.forEach(offset => {
+        const entryPrice = entryType === 'BUY_LIMIT' ? basePrice - offset : basePrice + offset;
+        results.push({
+          label: `Scalp Sniper (Offset ${offset})`,
+          regime: 'SIDEWAY',
+          offset,
+          formulaStr: `${basePrice.toFixed(2)} ${entryType === 'BUY_LIMIT' ? '-' : '+'} ${offset}`,
+          calculatedPrice: Number(entryPrice.toFixed(2)),
+          tpPipsMin: 20,
+          tpPipsMax: 40,
+          tpPriceMin: entryType === 'BUY_LIMIT' ? Number((entryPrice + 2).toFixed(2)) : Number((entryPrice - 2).toFixed(2)),
+          tpPriceMax: entryType === 'BUY_LIMIT' ? Number((entryPrice + 4).toFixed(2)) : Number((entryPrice - 4).toFixed(2)),
+          slPrice: entryType === 'BUY_LIMIT' ? Number((entryPrice - 1.5).toFixed(2)) : Number((entryPrice + 1.5).toFixed(2)),
+          recommendation: 'HIGH_CONFLUENCE'
+        });
+      });
+      return results;
+    }
 
     if (entryType === 'BUY_LIMIT') {
       const basePrice = resistenM5;
@@ -205,7 +229,7 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
   const results = calculateEntries();
 
   const handleCopySingle = (res: EntryCalculationResult, index: number) => {
-    const text = `📌 KALKULATOR GOLD M5 SETUP
+    const text = `📌 KALKULATOR GOLD M5 SETUP [${isScalpMode ? 'SCALP SNIPER' : 'NORMAL'}]
 Aset: ${currentInstrument.displaySymbol} (${entryType})
 Rezim: ${res.regime}
 Harga Acuan M5: $${entryType === 'BUY_LIMIT' ? resistenM5.toFixed(2) : supportM5.toFixed(2)}
@@ -245,8 +269,8 @@ Formula: ${res.formulaStr}
               <h2 className="text-base font-bold text-white tracking-wide">
                 Engine AI Setup Entri - Kalkulator Gold M5
               </h2>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-400 border border-amber-800/80 font-bold">
-                XAUUSD FORMULA
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono border font-bold ${isScalpMode ? 'bg-emerald-950 text-emerald-400 border-emerald-800' : 'bg-amber-950 text-amber-400 border-amber-800'}`}>
+                {isScalpMode ? 'SCALP SNIPER M1/M5' : 'XAUUSD FORMULA'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -257,6 +281,13 @@ Formula: ${res.formulaStr}
 
         {/* Action Toggle Buttons */}
         <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setIsScalpMode(!isScalpMode)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isScalpMode ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-500/20 shadow-lg' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}`}
+          >
+            <Zap className={`w-3.5 h-3.5 inline mr-1 ${isScalpMode ? 'fill-current' : ''}`} />
+            {isScalpMode ? 'Scalp Active' : 'Enable Scalp Mode'}
+          </button>
           <button
             type="button"
             onClick={handleResetToLive}
@@ -368,8 +399,9 @@ Formula: ${res.formulaStr}
           <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800">
             <button
               type="button"
+              disabled={isScalpMode}
               onClick={() => setActiveRegime('ALL')}
-              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors ${
+              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-20 ${
                 activeRegime === 'ALL' ? 'bg-amber-500 text-black font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -377,8 +409,9 @@ Formula: ${res.formulaStr}
             </button>
             <button
               type="button"
+              disabled={isScalpMode}
               onClick={() => setActiveRegime('SIDEWAY')}
-              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors ${
+              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-20 ${
                 activeRegime === 'SIDEWAY' ? 'bg-amber-500 text-black font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -386,8 +419,9 @@ Formula: ${res.formulaStr}
             </button>
             <button
               type="button"
+              disabled={isScalpMode}
               onClick={() => setActiveRegime('TREND_KUAT')}
-              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors ${
+              className={`flex-1 py-1.5 rounded text-xs font-mono font-semibold transition-colors disabled:opacity-20 ${
                 activeRegime === 'TREND_KUAT' ? 'bg-amber-500 text-black font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -395,7 +429,9 @@ Formula: ${res.formulaStr}
             </button>
           </div>
           <p className="text-[11px] text-slate-400">
-            {activeRegime === 'SIDEWAY'
+            {isScalpMode 
+              ? 'Mode Scalp M1 Aktif - Rezim dikunci ke Volatility Sniper.'
+              : activeRegime === 'SIDEWAY'
               ? entryType === 'BUY_LIMIT'
                 ? 'Scalping TP 50 s/d 70 Pips (Offset 0.10 - 0.17)'
                 : 'Scalping TP 40 s/d 70 Pips (Offset 0.10 - 0.17)'

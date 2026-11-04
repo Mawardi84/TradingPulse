@@ -22,6 +22,7 @@ import { Phase4HubView } from './components/Phase4HubView';
 import { QuantScriptEditor } from './components/QuantScriptEditor';
 import { CloudPortfolioView } from './components/CloudPortfolioView';
 import { LandingAuthScreen } from './components/LandingAuthScreen';
+import { RoadmapView } from './components/RoadmapView';
 import { UserMenu } from './components/UserMenu';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PWAInstallButton } from './components/PWAInstallButton';
@@ -44,13 +45,15 @@ import {
   LayoutDashboard,
   Wallet as WalletIcon,
   Activity as ActivityIcon,
+  Mic,
 } from 'lucide-react';
+import { useVoiceCommand } from './hooks/useVoiceCommand';
 
 export function App() {
   const { user, loading: authLoading } = useFirebase();
 
   const [activeSection, setActiveSection] = useState<
-    'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot' | 'phase4' | 'quant' | 'portfolio' | 'system'
+    'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot' | 'phase4' | 'quant' | 'portfolio' | 'system' | 'roadmap'
   >('chart');
 
   // Chart view side tab selection
@@ -59,6 +62,7 @@ export function App() {
   >('technicals');
   const [showMultiAssetDrawer, setShowMultiAssetDrawer] = useState<boolean>(false);
   const [activePendingOrder, setActivePendingOrder] = useState<PendingOrder | null>(null);
+  const [activeIndicators, setActiveIndicators] = useState<string[]>([]);
 
   // Real-time market state hook with live Binance WS & Interbank rates
   const {
@@ -94,6 +98,7 @@ export function App() {
     { id: 'bot', label: 'Bot Trading MT5' },
     { id: 'quant', label: 'Quant Script Editor' },
     { id: 'phase4', label: 'Phase 4: Lab & Bridge' },
+    { id: 'roadmap', label: 'Roadmap' },
   ];
 
   const scrollToTop = () => {
@@ -144,9 +149,8 @@ export function App() {
   const [commandInput, setCommandInput] = useState('');
   const [showAuditModal, setShowAuditModal] = useState(false);
 
-  const handleCommandSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cmd = commandInput.trim().toLowerCase();
+  const executeCommand = (cmdText: string) => {
+    const cmd = cmdText.trim().toLowerCase();
     if (!cmd) return;
 
     if (cmd.startsWith('/bug') || cmd.startsWith('/audit') || cmd.startsWith('/health') || cmd.startsWith('/debug') || cmd.startsWith('/system')) {
@@ -176,10 +180,30 @@ export function App() {
       setActiveSection('chat');
     } else if (cmd.startsWith('/fundamental')) {
       setActiveSection('fundamental');
+    } else if (cmd.startsWith('/roadmap')) {
+      setActiveSection('roadmap');
+    } else if (cmd.startsWith('/rsi')) {
+      setActiveIndicators(prev => prev.includes('RSI') ? prev : [...prev, 'RSI']);
+      setActiveSection('chart');
+    } else if (cmd.startsWith('/macd')) {
+      setActiveIndicators(prev => prev.includes('MACD') ? prev : [...prev, 'MACD']);
+      setActiveSection('chart');
+    } else if (cmd.startsWith('/indicator') && cmd.includes('off')) {
+      setActiveIndicators([]);
     }
     setCommandInput('');
     scrollToTop();
   };
+
+  const handleCommandSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    executeCommand(commandInput);
+  };
+
+  const { isListening, startListening, error: voiceError } = useVoiceCommand((cmd) => {
+    setCommandInput(cmd);
+    setTimeout(() => executeCommand(cmd), 800);
+  });
 
 
   if (authLoading) {
@@ -242,6 +266,14 @@ export function App() {
           className="bg-transparent border-none outline-none w-full text-yellow-200 placeholder-zinc-700"
           placeholder="Type command... (e.g. /chart XAUUSD, /screener, /bot, /news, /calendar, /macro)"
         />
+        <button 
+          type="button" 
+          onClick={startListening}
+          className={`p-1 transition-all ${isListening ? 'text-rose-500 animate-pulse' : 'text-zinc-600 hover:text-white'}`}
+          title="Voice Command (Mic)"
+        >
+          <Mic className="w-3.5 h-3.5" />
+        </button>
       </form>
 
       <ErrorBoundary>
@@ -261,6 +293,7 @@ export function App() {
             INITIAL_MARKET_NEWS={INITIAL_MARKET_NEWS}
             handleJumpToChart={handleJumpToChart}
             handleJumpToFundamental={handleJumpToFundamental}
+            activeIndicators={activeIndicators}
           />
         ) : (
           <main className="p-3 min-h-[calc(100vh-60px)] overflow-y-auto bg-black text-white">
@@ -353,6 +386,8 @@ export function App() {
                 candles={candles}
               />
             )}
+            
+            {activeSection === 'roadmap' && <RoadmapView />}
           </main>
         )}
 
