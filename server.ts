@@ -106,6 +106,264 @@ Konsensus Analis: ${currentInstrument.fundamentals?.analystConsensus || 'N/A'} (
   }
 });
 
+// ==========================================
+// TRADINGVIEW FREE SCRAPING API ENDPOINTS
+// ==========================================
+import { getCandles, getQuote, searchMarkets, getTechnicalAnalysis } from '@mathieuc/tradingview';
+
+function resolveTradingViewSymbol(symbol: string): string {
+  if (!symbol) return 'OANDA:XAUUSD';
+  if (symbol.includes(':')) return symbol;
+
+  const map: Record<string, string> = {
+    // Crypto
+    BTCUSDT: 'BINANCE:BTCUSDT',
+    ETHUSDT: 'BINANCE:ETHUSDT',
+    SOLUSDT: 'BINANCE:SOLUSDT',
+    XRPUSDT: 'BINANCE:XRPUSDT',
+    ADAUSDT: 'BINANCE:ADAUSDT',
+    DOGEUSDT: 'BINANCE:DOGEUSDT',
+    // Forex Majors
+    EURUSD: 'FX:EURUSD',
+    GBPUSD: 'FX:GBPUSD',
+    USDJPY: 'FX:USDJPY',
+    AUDUSD: 'FX:AUDUSD',
+    USDCAD: 'FX:USDCAD',
+    USDCHF: 'FX:USDCHF',
+    NZDUSD: 'FX:NZDUSD',
+    // Forex Minors
+    EURGBP: 'FX:EURGBP',
+    GBPJPY: 'FX:GBPJPY',
+    AUDJPY: 'FX:AUDJPY',
+    EURJPY: 'FX:EURJPY',
+    // Forex Exotics
+    USDIDR: 'IDC:USDIDR',
+    USDSGD: 'FX:USDSGD',
+    USDZAR: 'FX:USDZAR',
+    // US Stocks
+    NVDA: 'NASDAQ:NVDA',
+    AAPL: 'NASDAQ:AAPL',
+    MSFT: 'NASDAQ:MSFT',
+    TSLA: 'NASDAQ:TSLA',
+    AMZN: 'NASDAQ:AMZN',
+    GOOGL: 'NASDAQ:GOOGL',
+    // IDX Stocks
+    BBCA: 'IDX:BBCA',
+    BBRI: 'IDX:BBRI',
+    BMRI: 'IDX:BMRI',
+    TLKM: 'IDX:TLKM',
+    // Commodities
+    XAUUSD: 'OANDA:XAUUSD',
+    XAGUSD: 'OANDA:XAGUSD',
+    USOIL: 'TVC:USOIL',
+    COPPER: 'COMEX:HG1!',
+  };
+
+  return map[symbol.toUpperCase()] || `BINANCE:${symbol.toUpperCase()}`;
+}
+
+function resolveTradingViewTimeframe(tf: string): string {
+  const map: Record<string, string> = {
+    '1m': '1',
+    '5m': '5',
+    '15m': '15',
+    '1h': '60',
+    '4h': '240',
+    '1D': '1D',
+    '1d': '1D',
+  };
+  return map[tf] || '15';
+}
+
+// In-memory cache for TradingView scraping calls
+const tvCandlesCache = new Map<string, { candles: any[]; timestamp: number }>();
+const tvQuoteCache = new Map<string, { quote: any; timestamp: number }>();
+const tvTaCache = new Map<string, { ta: any; timestamp: number }>();
+
+function withTimeout<T>(promise: Promise<T>, ms: number = 7000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`TradingView request timeout after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+/**
+ * GET /api/tv/candles?symbol=XAUUSD&timeframe=15m&count=100
+ * Scrapes real OHLCV candles directly from TradingView without API key!
+ */
+app.get('/api/tv/candles', async (req: Request, res: Response) => {
+  try {
+    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+    const rawTf = String(req.query.timeframe || '15m');
+    const count = Math.min(300, Math.max(10, parseInt(String(req.query.count || '100'), 10)));
+
+    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+    const tvTimeframe = resolveTradingViewTimeframe(rawTf);
+
+    const cacheKey = `${tvSymbol}_${tvTimeframe}_${count}`;
+    const cached = tvCandlesCache.get(cacheKey);
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < 10000) {
+      return res.json({
+        success: true,
+        source: 'TradingView Free Scraper (Cached)',
+        symbol: tvSymbol,
+        timeframe: rawTf,
+        candles: cached.candles,
+      });
+    }
+
+    const rawCandles = await withTimeout(
+      getCandles({
+        symbol: tvSymbol,
+        timeframe: tvTimeframe as any,
+        count,
+      }),
+      6000
+    );
+
+    if (!Array.isArray(rawCandles) || rawCandles.length === 0) {
+      return res.status(404).json({ success: false, error: 'No candles returned from TradingView' });
+    }
+
+    const formattedCandles = rawCandles.map((c: any) => ({
+      time: Math.floor(c.time || c.timestamp || Date.now() / 1000),
+      open: Number(c.open),
+      high: Number(c.high),
+      low: Number(c.low),
+      close: Number(c.close),
+      volume: Math.round(Number(c.volume || 0)),
+    }));
+
+    tvCandlesCache.set(cacheKey, { candles: formattedCandles, timestamp: now });
+
+    return res.json({
+      success: true,
+      source: 'TradingView Free Scraper (Live)',
+      symbol: tvSymbol,
+      timeframe: rawTf,
+      candles: formattedCandles,
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.warn('[TradingView /api/tv/candles error]:', errMsg);
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+/**
+ * GET /api/tv/quote?symbol=OANDA:XAUUSD
+ * Scrapes real-time quote/ticker directly from TradingView!
+ */
+app.get('/api/tv/quote', async (req: Request, res: Response) => {
+  try {
+    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+
+    const cached = tvQuoteCache.get(tvSymbol);
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < 5000) {
+      return res.json({
+        success: true,
+        source: 'TradingView Free Scraper (Cached Quote)',
+        quote: cached.quote,
+      });
+    }
+
+    const rawQuote = await withTimeout(getQuote(tvSymbol), 5000);
+
+    const quote = {
+      symbol: tvSymbol,
+      rawSymbol,
+      price: Number(rawQuote.lp || rawQuote.open_price || 0),
+      change24h: Number(rawQuote.ch || 0),
+      changePercent24h: Number(rawQuote.chp || 0),
+      high24h: Number(rawQuote.high_price || 0),
+      low24h: Number(rawQuote.low_price || 0),
+      volume24h: Number(rawQuote.volume || 0),
+      bid: Number(rawQuote.bid || rawQuote.lp || 0),
+      ask: Number(rawQuote.ask || rawQuote.lp || 0),
+      open: Number(rawQuote.open_price || 0),
+      prevClose: Number(rawQuote.prev_close_price || 0),
+      provider: rawQuote.provider_id || 'TradingView',
+      type: rawQuote.type || 'market',
+      currency: rawQuote.currency_code || 'USD',
+      updatedAt: Date.now(),
+    };
+
+    tvQuoteCache.set(tvSymbol, { quote, timestamp: now });
+
+    return res.json({
+      success: true,
+      source: 'TradingView Free Scraper (Live Quote)',
+      quote,
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.warn('[TradingView /api/tv/quote error]:', errMsg);
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+/**
+ * GET /api/tv/search?q=XAU
+ * Free market search across global TradingView symbols
+ */
+app.get('/api/tv/search', async (req: Request, res: Response) => {
+  try {
+    const query = String(req.query.q || req.query.query || 'GOLD');
+    const results = await withTimeout(searchMarkets(query), 5000);
+    return res.json({
+      success: true,
+      source: 'TradingView Market Search',
+      results: results || [],
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.warn('[TradingView /api/tv/search error]:', errMsg);
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+/**
+ * GET /api/tv/ta?symbol=FX:EURUSD
+ * Technical analysis ratings scraped from TradingView
+ */
+app.get('/api/tv/ta', async (req: Request, res: Response) => {
+  try {
+    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+
+    const cached = tvTaCache.get(tvSymbol);
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < 30000) {
+      return res.json({
+        success: true,
+        source: 'TradingView Technical Analysis (Cached)',
+        ta: cached.ta,
+      });
+    }
+
+    const ta = await withTimeout(getTechnicalAnalysis(tvSymbol), 6000);
+    tvTaCache.set(tvSymbol, { ta, timestamp: now });
+
+    return res.json({
+      success: true,
+      source: 'TradingView Technical Analysis (Live)',
+      ta,
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    console.warn('[TradingView /api/tv/ta error]:', errMsg);
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.resolve(process.cwd(), 'dist')));

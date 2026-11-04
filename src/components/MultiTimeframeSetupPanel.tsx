@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Instrument, Candle } from '../types/market';
+import { GoldEntryCalculatorPanel } from './GoldEntryCalculatorPanel';
 import {
   TrendingUp,
   TrendingDown,
@@ -17,6 +18,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   ShieldCheck,
+  Calculator,
 } from 'lucide-react';
 
 export interface MTFStep {
@@ -47,8 +49,9 @@ export const MultiTimeframeSetupPanel: React.FC<{
   allInstruments: Instrument[];
   candles: Candle[];
   onSelectInstrument?: (symbol: string) => void;
-}> = ({ currentInstrument, allInstruments, candles, onSelectInstrument }) => {
-  const [activeTab, setActiveTab] = useState<'current' | 'scanner' | 'cheat_sheet'>('current');
+  onSendOrderTicket?: (order: { type: 'BUY_LIMIT' | 'SELL_LIMIT'; price: number; sl: number; tp: number; symbol: string }) => void;
+}> = ({ currentInstrument, allInstruments, candles, onSelectInstrument, onSendOrderTicket }) => {
+  const [activeTab, setActiveTab] = useState<'current' | 'gold_calculator' | 'scanner' | 'cheat_sheet'>('gold_calculator');
   const [copiedSignal, setCopiedSignal] = useState<boolean>(false);
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
 
@@ -224,7 +227,22 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
         </div>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 self-stretch sm:self-auto justify-center">
+        <div className="flex flex-wrap items-center gap-1 bg-[#0B0F17] p-1 rounded-lg border border-slate-800 self-stretch sm:self-auto justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('gold_calculator');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === 'gold_calculator'
+                ? 'bg-amber-500 text-black font-bold shadow-lg shadow-amber-500/20'
+                : 'text-amber-400 hover:text-amber-300 hover:bg-slate-800/50'
+            }`}
+          >
+            <Calculator className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Kalkulator Gold M5 (AI Engine)</span>
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -274,6 +292,15 @@ ${primarySetup.type === 'BUY' ? 'Weekly (W) ➔ H4 ➔ M30 ➔ M5 ➔ M1' : 'Mon
       </div>
 
       {/* Main Content Area */}
+      {activeTab === 'gold_calculator' && (
+        <GoldEntryCalculatorPanel
+          currentInstrument={currentInstrument}
+          candles={candles}
+          onSelectInstrument={onSelectInstrument}
+          onSendOrderTicket={onSendOrderTicket}
+        />
+      )}
+
       {activeTab === 'current' && (
         <div className="space-y-6">
           {/* Signal Header Card */}

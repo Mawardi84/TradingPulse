@@ -2,6 +2,7 @@ import React from 'react';
 import { Candle, Instrument, Timeframe } from '../types/market';
 import { TradingViewWidget } from './TradingViewWidget';
 import { SupplyDemandOverlayPanel } from './SupplyDemandOverlayPanel';
+import { TradeSignalOverlay } from './TradeSignalOverlay';
 
 interface TradingChartCanvasProps {
   instrument: Instrument;
@@ -9,6 +10,8 @@ interface TradingChartCanvasProps {
   timeframe: Timeframe;
   onTimeframeChange: (tf: Timeframe) => void;
   liveSource: string;
+  onExecuteTrade?: (order: { type: 'BUY' | 'SELL'; price: number; sl: number; tp: number }) => void;
+  onOpenBotManager?: () => void;
 }
 
 export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
@@ -16,27 +19,29 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
   candles,
   timeframe,
   onTimeframeChange,
+  onExecuteTrade,
+  onOpenBotManager,
 }) => {
   const timeframes: Timeframe[] = ['1m', '5m', '15m', '1h', '4h', '1D'];
 
   return (
-    <div className="flex flex-col space-y-4">
-      <div className="flex flex-col bg-[#0B0F17] border border-slate-800 rounded-xl overflow-hidden shadow-2xl space-y-0">
+    <div className="flex flex-col space-y-0">
+      <div className="flex flex-col bg-black border border-white space-y-0">
         {/* Top Interactive Timeframe Bar */}
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#111722] border-b border-slate-800">
+        <div className="flex items-center justify-between gap-3 px-2 py-1 bg-black border-b border-white">
           {/* Left: Timeframe Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-slate-400 font-semibold hidden sm:inline">Timeframe:</span>
-            <div className="flex items-center bg-[#0B0F17] p-0.5 rounded border border-slate-800">
+            <span className="text-[10px] font-mono text-white font-bold hidden sm:inline">TF:</span>
+            <div className="flex items-center bg-black p-0 border border-white">
               {timeframes.map((tf) => (
                 <button
                   key={tf}
                   type="button"
                   onClick={() => onTimeframeChange(tf)}
-                  className={`px-3 py-1 text-xs font-mono font-bold rounded transition-colors whitespace-nowrap ${
+                  className={`px-2 py-0.5 text-[10px] font-mono font-bold transition-colors whitespace-nowrap ${
                     timeframe === tf
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-white text-black'
+                      : 'text-white hover:bg-zinc-800'
                   }`}
                 >
                   {tf}
@@ -45,14 +50,22 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-bold">{instrument.displaySymbol}</span>
+          <div className="flex items-center gap-2 text-[10px] font-mono">
+            <span className="w-2 h-2 bg-yellow-400 animate-pulse" />
+            <span className="text-yellow-400 font-bold">{instrument.displaySymbol}</span>
           </div>
         </div>
 
+        {/* AI Trade Signal Overlay Panel */}
+        <TradeSignalOverlay
+          instrument={instrument}
+          candles={candles}
+          onExecuteTrade={onExecuteTrade}
+          onOpenBotManager={onOpenBotManager}
+        />
+
         {/* Official TradingView Interactive Advanced Chart Engine */}
-        <TradingViewWidget instrument={instrument} timeframe={timeframe} height={580} />
+        <TradingViewWidget instrument={instrument} timeframe={timeframe} height={600} />
       </div>
 
       {/* Automatic Live Supply & Demand Indicator Panel */}

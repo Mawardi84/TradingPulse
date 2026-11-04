@@ -35,9 +35,10 @@ export const MultiAssetListPanel: React.FC<{
   ];
 
   const getSourceLabel = (inst: Instrument) => {
+    if (inst.symbol === 'XAUUSD') return 'TradingView Scraped (COMEX Spot)';
     if (inst.binanceSymbol) return 'Binance Spot v3 (Live)';
     if (inst.category === 'forex') return 'OpenER API / ECB';
-    if (inst.category === 'commodities') return 'COMEX / NYMEX Spot';
+    if (inst.category === 'commodities') return 'COMEX / TradingView Free Scrape';
     if (inst.category === 'us_stocks') return 'NASDAQ / SEC 10-Q';
     if (inst.category === 'idx_stocks') return 'Bursa Efek Indonesia (IDX)';
     return 'Interbank Spot';

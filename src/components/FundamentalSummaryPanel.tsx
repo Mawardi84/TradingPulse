@@ -35,7 +35,7 @@ export const FundamentalSummaryPanel: React.FC<{
     : isStock
     ? 'U.S. Securities and Exchange Commission (SEC EDGAR Form 10-Q)'
     : isCommodity
-    ? 'London Bullion Market Association (LBMA) & CME Group'
+    ? 'CME COMEX & LBMA Spot (TradingView Free Scrape Live)'
     : isCrypto
     ? 'On-Chain Public Blockchain & Binance Spot v3 Analytics'
     : 'Federal Reserve (FRED) & European Central Bank (ECB)';
@@ -45,7 +45,7 @@ export const FundamentalSummaryPanel: React.FC<{
     : isStock
     ? 'https://www.sec.gov/edgar'
     : isCommodity
-    ? 'https://www.lbma.org.uk'
+    ? 'https://www.tradingview.com/symbols/OANDA-XAUUSD/'
     : isCrypto
     ? 'https://api.binance.com'
     : 'https://open.er-api.com';

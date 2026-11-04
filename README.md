@@ -13,15 +13,16 @@
 **AstraView TradePulse Pro** adalah platform analisis keuangan kuantitatif dan eksekusi sinyal multi-aset yang dirancang untuk trader profesional, quant analyst, dan investor institusional.
 
 ### 📈 Fitur Utama Architecture & Engine
-1. **TradingView Chart Engine Live**:
-   - Integrasi data live feed Binance Spot WebSocket & Interbank Liquidity Ticks.
+1. **TradingView Scraping & Chart Engine Live**:
+   - Integrasi data scraping gratis dari **TradingView** via `@mathieuc/tradingview` (`GET /api/tv/candles`, `GET /api/tv/quote`, `GET /api/tv/search`, `GET /api/tv/ta`) tanpa memerlukan API key.
+   - Live stream gabungan **TradingView Scraper**, **Binance Spot WebSocket**, & **Interbank Liquidity Ticks**.
    - Indikator otomatis **Supply & Demand Zones**, **Order Blocks (OB)**, **Fair Value Gap (FVG)**, **Pivot Points (Klasik)**, **Moving Averages (EMA 20/50/200)**, dan **RSI (14)**.
    - **Manual S&D Zone Drawer**: Pengguna dapat menggambar dan menyimpan zona kustom sendiri yang secara otomatis ditumpuk (*layered*) di atas indikator otomatis.
 
-2. **AstraBot Quant Analysist**:
+2. **AstraBot Quant Analyst**:
    - Asisten AI Senior Quantitative Analyst berstandar riset desk institusional.
    - Analisis berbasis **Smart Money Concepts (SMC)**, **Multi-Timeframe (MTF)**, **Kalkulasi Makro (CPI, NFP, FOMC, Yield Spread)**, dan **Sentimen Fear & Greed**.
-   - Bebas mock data — grounded pada feed data pasar nyata dan formula kuantitatif.
+   - Grounded pada feed data TradingView real-time, Binance WebSocket, dan formula kuantitatif.
 
 3. **Multi-Asset & Macro Terminal**:
    - **Crypto**: BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, ADA/USDT, DOGE/USDT (Binance WS).

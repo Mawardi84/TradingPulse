@@ -94,7 +94,9 @@ export const WatchlistTickerBar: React.FC<{
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="font-semibold text-emerald-400">REAL LIVE FEED</span>
+              <span className="font-semibold text-amber-400 uppercase tracking-wide">
+                {connectionStatus.source || 'TRADINGVIEW FREE SCRAPE'}
+              </span>
               <span className="text-slate-500">|</span>
               <span className="text-slate-400">{connectionStatus.tickCount.toLocaleString()} ticks</span>
               <span className="text-slate-500">|</span>

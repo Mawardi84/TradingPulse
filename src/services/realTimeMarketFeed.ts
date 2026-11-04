@@ -195,6 +195,11 @@ export class RealTimeMarketFeed {
     };
   }
 
+  public updatePriceCache(symbol: string, newPrice: number) {
+    if (!symbol || newPrice <= 0) return;
+    this.priceCache.set(symbol, newPrice);
+  }
+
   private notify(tick: MarketTick) {
     this.subscribers.forEach((cb) => {
       try {

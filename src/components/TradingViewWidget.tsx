@@ -83,11 +83,7 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
       style: '1', // Candlestick
       timezone: 'Asia/Jakarta',
       locale: 'id',
-      studies: JSON.stringify([
-        'RSI@tv-basicstudies',
-        'MASimple@tv-basicstudies',
-        'MACD@tv-basicstudies',
-      ]),
+      studies: JSON.stringify(['STD;RSI', 'STD;MACD']),
       utmsource: 'localhost',
       utm_medium: 'widget',
       utm_campaign: 'chart',

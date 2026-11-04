@@ -2,45 +2,35 @@
 
 @layer base {
   :root {
-    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
 
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
   }
 
   body {
-    font-family: var(--font-sans);
-    background-color: #0B0F17;
-    color: #F1F5F9;
+    font-family: var(--font-mono);
+    background-color: black;
+    color: white;
     overflow-x: hidden;
   }
-
-  h1, h2, h3, h4, .font-display {
-    font-family: var(--font-display);
-    text-wrap: balance;
-  }
-
-  .font-mono, .tabular-nums {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
 }
 
-/* Custom subtle scrollbars for high-density financial tables */
+/* Strict sharp scrollbars for Bloomberg aesthetic */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: #000000;
+  border: 1px solid #222222;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border-radius: 3px;
+  background: #facc15;
+  border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #fef08a;
 }
+

@@ -17,16 +17,36 @@ export interface Position {
   pnlPercent: number;
 }
 
+export interface PendingOrder {
+  type: 'BUY' | 'SELL';
+  price: number;
+  sl: number;
+  tp: number;
+  timestamp?: number;
+}
+
 export const ChartTradingWidget: React.FC<{
   instrument: Instrument;
   allInstruments?: Instrument[];
-}> = ({ instrument, allInstruments = [] }) => {
+  pendingOrder?: PendingOrder | null;
+}> = ({ instrument, allInstruments = [], pendingOrder }) => {
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
   const [lots, setLots] = useState<number>(0.1);
   const [slPrice, setSlPrice] = useState<string>('');
   const [tpPrice, setTpPrice] = useState<string>('');
   const [limitPrice, setLimitPrice] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'ticket' | 'positions' | 'history'>('ticket');
+
+  // Sync pending order if received from TradeSignalOverlay or Gold Calculator
+  React.useEffect(() => {
+    if (pendingOrder) {
+      setOrderType('limit');
+      setLimitPrice(pendingOrder.price.toString());
+      setSlPrice(pendingOrder.sl.toString());
+      setTpPrice(pendingOrder.tp.toString());
+      setActiveTab('ticket');
+    }
+  }, [pendingOrder]);
 
   const [balance, setBalance] = useState<number>(50000.0);
   const [positions, setPositions] = useState<Position[]>([

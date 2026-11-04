@@ -24,6 +24,7 @@ import {
   Check,
   ShieldCheck,
   Building,
+  BrainCircuit,
 } from 'lucide-react';
 
 interface FomcSchedulePanelProps {
@@ -72,6 +73,31 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
 
   const meetingsList: FomcMeeting[] = ALL_FOMC_MEETINGS[selectedYear] || ALL_FOMC_MEETINGS[2026];
   const nextMeeting = meetingsList.find((m) => m.status === 'next') || meetingsList[meetingsList.length - 1];
+
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [loadingAI, setLoadingAI] = useState<boolean>(false);
+
+  const generateFOMCAnalysis = async (meeting: FomcMeeting) => {
+    setLoadingAI(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Berikan ringkasan berita pasca rilis dan analisa dampak pergerakan market untuk rapat FOMC berikut: 
+          Tanggal: ${meeting.meetingDates}
+          Keputusan: ${meeting.decisionOrExpectation}
+          Catatan: ${meeting.notes}`,
+        }),
+      });
+      const data = await response.json();
+      setAiAnalysis(data.reply || 'Analisa tidak tersedia saat ini.');
+    } catch (error) {
+      setAiAnalysis('Gagal mendapatkan analisa AI.');
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   const filteredMeetings = meetingsList.filter((m) => {
     if (filterType === 'upcoming') return m.status === 'next' || m.status === 'upcoming';
@@ -281,9 +307,20 @@ export const FomcSchedulePanel: React.FC<FomcSchedulePanelProps> = ({
               <h4 className="text-base font-bold text-white font-mono">
                 Rapat Suku Bunga FOMC {nextMeeting.meetingDates}
               </h4>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                {nextMeeting.notes}
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {aiAnalysis || nextMeeting.notes}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => generateFOMCAnalysis(nextMeeting)}
+                  disabled={loadingAI}
+                  className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 rounded text-[11px] font-mono font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <BrainCircuit className="w-3.5 h-3.5" />
+                  <span>{loadingAI ? 'Menganalisis...' : 'Analisa AI FOMC & Berita'}</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2 pt-2 border-t border-slate-800 text-xs font-mono">
