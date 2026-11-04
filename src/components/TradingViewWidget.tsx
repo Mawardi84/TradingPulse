@@ -93,11 +93,9 @@ export const TradingViewWidget: React.FC<TradingViewWidgetProps> = ({
       style: '1', // Candlestick
       timezone: 'Asia/Jakarta',
       locale: 'id',
-      studies: JSON.stringify(['STD;RSI', 'STD;MACD']),
-      utmsource: 'localhost',
-      utm_medium: 'widget',
-      utm_campaign: 'chart',
-      utm_term: tvSymbol,
+      withdateranges: '1',
+      hide_side_toolbar: '0',
+      allow_symbol_change: '1',
     });
 
     return `https://s.tradingview.com/widgetembed/?${params.toString()}`;

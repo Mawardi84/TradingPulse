@@ -275,7 +275,7 @@ app.get('/api/tv/candles', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
     console.warn('[TradingView /api/tv/candles error]:', errMsg);
-    return res.status(500).json({ success: false, error: errMsg });
+    return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });
 
@@ -291,7 +291,7 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
     const cached = tvQuoteCache.get(tvSymbol);
     const now = Date.now();
 
-    if (cached && now - cached.timestamp < 5000) {
+    if (cached && now - cached.timestamp < 15000) {
       return res.json({
         success: true,
         source: 'TradingView Free Scraper (Cached Quote)',
@@ -299,7 +299,7 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
       });
     }
 
-    const rawQuote = await withTimeout(getQuote(tvSymbol), 5000);
+    const rawQuote = await withTimeout(getQuote(tvSymbol), 4000);
 
     const quote = {
       symbol: tvSymbol,
@@ -330,7 +330,7 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
     console.warn('[TradingView /api/tv/quote error]:', errMsg);
-    return res.status(500).json({ success: false, error: errMsg });
+    return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });
 
@@ -350,7 +350,7 @@ app.get('/api/tv/search', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
     console.warn('[TradingView /api/tv/search error]:', errMsg);
-    return res.status(500).json({ success: false, error: errMsg });
+    return res.status(200).json({ success: false, fallbackRequired: true, results: [], error: errMsg });
   }
 });
 
@@ -374,7 +374,7 @@ app.get('/api/tv/ta', async (req: Request, res: Response) => {
       });
     }
 
-    const ta = await withTimeout(getTechnicalAnalysis(tvSymbol), 6000);
+    const ta = await withTimeout(getTechnicalAnalysis(tvSymbol), 4000);
     tvTaCache.set(tvSymbol, { ta, timestamp: now });
 
     return res.json({
@@ -385,7 +385,7 @@ app.get('/api/tv/ta', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
     console.warn('[TradingView /api/tv/ta error]:', errMsg);
-    return res.status(500).json({ success: false, error: errMsg });
+    return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });
 
@@ -398,7 +398,7 @@ let fomcLiveCache: { data: any; timestamp: number } | null = null;
  */
 app.get('/api/fomc/live', async (_req: Request, res: Response) => {
   const now = Date.now();
-  if (fomcLiveCache && now - fomcLiveCache.timestamp < 20000) {
+  if (fomcLiveCache && now - fomcLiveCache.timestamp < 60000) {
     return res.json({
       success: true,
       source: 'TradingView & FRED Scraper (Cached)',
@@ -415,44 +415,25 @@ app.get('/api/fomc/live', async (_req: Request, res: Response) => {
     let us10y = 4.93;
     let dxy = 101.4;
 
-    try {
-      const qUsintr = await withTimeout(getQuote('ECONOMICS:USINTR'), 3500);
-      if (qUsintr?.lp) usintr = Number(qUsintr.lp);
-    } catch {}
+    const [rUsintr, rUpper, rLower, rEffr, r2y, r10y, rDxy] = await Promise.allSettled([
+      withTimeout(getQuote('ECONOMICS:USINTR'), 2500),
+      withTimeout(getQuote('FRED:DFEDTARU'), 2500),
+      withTimeout(getQuote('FRED:DFEDTARL'), 2500),
+      withTimeout(getQuote('FRED:FEDFUNDS'), 2500),
+      withTimeout(getQuote('TVC:US02Y'), 2500),
+      withTimeout(getQuote('TVC:US10Y'), 2500),
+      withTimeout(getQuote('TVC:DXY'), 2500),
+    ]);
 
-    try {
-      const qUpper = await withTimeout(getQuote('FRED:DFEDTARU'), 3500);
-      if (qUpper?.lp) dtaru = Number(qUpper.lp);
-    } catch {
-      dtaru = usintr;
-    }
-
-    try {
-      const qLower = await withTimeout(getQuote('FRED:DFEDTARL'), 3500);
-      if (qLower?.lp) dtarl = Number(qLower.lp);
-    } catch {
-      dtarl = Math.max(0, dtaru - 0.25);
-    }
-
-    try {
-      const qEffr = await withTimeout(getQuote('FRED:FEDFUNDS'), 3500);
-      if (qEffr?.lp) effr = Number(qEffr.lp);
-    } catch {}
-
-    try {
-      const q2y = await withTimeout(getQuote('TVC:US02Y'), 3500);
-      if (q2y?.lp) us02y = Number(q2y.lp);
-    } catch {}
-
-    try {
-      const q10y = await withTimeout(getQuote('TVC:US10Y'), 3500);
-      if (q10y?.lp) us10y = Number(q10y.lp);
-    } catch {}
-
-    try {
-      const qDxy = await withTimeout(getQuote('TVC:DXY'), 3500);
-      if (qDxy?.lp) dxy = Number(qDxy.lp);
-    } catch {}
+    if (rUsintr.status === 'fulfilled' && rUsintr.value?.lp) usintr = Number(rUsintr.value.lp);
+    if (rUpper.status === 'fulfilled' && rUpper.value?.lp) dtaru = Number(rUpper.value.lp);
+    else dtaru = usintr;
+    if (rLower.status === 'fulfilled' && rLower.value?.lp) dtarl = Number(rLower.value.lp);
+    else dtarl = Math.max(0, dtaru - 0.25);
+    if (rEffr.status === 'fulfilled' && rEffr.value?.lp) effr = Number(rEffr.value.lp);
+    if (r2y.status === 'fulfilled' && r2y.value?.lp) us02y = Number(r2y.value.lp);
+    if (r10y.status === 'fulfilled' && r10y.value?.lp) us10y = Number(r10y.value.lp);
+    if (rDxy.status === 'fulfilled' && rDxy.value?.lp) dxy = Number(rDxy.value.lp);
 
     // Calculate dynamic CME FedWatch probabilities based on yield spread (2Y Treasury vs EFFR)
     const rateSpread = (dtaru - us02y) * 100; // bps spread
