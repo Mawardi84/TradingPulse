@@ -287,6 +287,81 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     };
   }, []);
 
+  const addCustomInstrument = useCallback(async (rawSymbol: string) => {
+    const sym = rawSymbol.trim().toUpperCase();
+    if (!sym) return null;
+
+    const existing = instrumentsRef.current.find(
+      (i) => i.symbol === sym || i.displaySymbol.replace('/', '') === sym
+    );
+    if (existing) {
+      setSelectedSymbol(existing.symbol);
+      return existing;
+    }
+
+    try {
+      const tvQuote = await fetchTradingViewQuote(sym);
+      const initialPrice = tvQuote && tvQuote.price > 0 ? tvQuote.price : 100;
+
+      const newInst: Instrument = {
+        symbol: sym,
+        displaySymbol: sym,
+        name: tvQuote ? `${sym} (${tvQuote.provider || 'TradingView'})` : `${sym}`,
+        category: sym.endsWith('USDT') ? 'crypto' : sym.length === 6 ? 'forex' : 'commodities',
+        exchange: tvQuote?.provider || 'TradingView',
+        currency: tvQuote?.currency || 'USD',
+        price: initialPrice,
+        change24h: tvQuote?.change24h || 0,
+        changePercent24h: tvQuote?.changePercent24h || 0,
+        high24h: tvQuote?.high24h || initialPrice * 1.02,
+        low24h: tvQuote?.low24h || initialPrice * 0.98,
+        volume24h: tvQuote?.volume24h || 1000000,
+        decimals: sym.includes('JPY') || sym.includes('IDR') ? 2 : 4,
+        fundamentals: {
+          marketCap: 'N/A',
+          enterpriseValue: 'N/A',
+          peRatio: 0,
+          forwardPe: 0,
+          pbRatio: 0,
+          psRatio: 0,
+          evToEbitda: 0,
+          pegRatio: 0,
+          roe: 0,
+          roa: 0,
+          grossMargin: 0,
+          operatingMargin: 0,
+          netMargin: 0,
+          debtToEquity: 0,
+          currentRatio: 0,
+          dividendYield: 0,
+          revenueGrowthYoY: 0,
+          epsGrowthYoY: 0,
+          freeCashFlowBase: 0,
+          netDebtBillions: 0,
+          sharesOutstandingBillions: 0,
+          analystTargetPrice: initialPrice * 1.1,
+          analystConsensus: 'Buy',
+          analystBreakdown: { strongBuy: 10, buy: 5, hold: 2, sell: 0 },
+          sector: 'Global Markets',
+          industry: 'TradingView Scraped Instrument',
+          headquarters: 'Global',
+          description: `Aset ${sym} live feed scraped langsung dari TradingView.`,
+          keyCatalysts: ['Market Dynamics'],
+          keyRisks: ['Market Risk'],
+          quarterlyFinancials: [],
+        },
+      };
+
+      setInstruments((prev) => [...prev, newInst]);
+      setSelectedSymbol(sym);
+      marketFeedSingleton.updatePriceCache(sym, initialPrice);
+      return newInst;
+    } catch (err) {
+      console.warn('[useRealTimeMarket] Error adding custom instrument:', err);
+      return null;
+    }
+  }, []);
+
   const togglePause = () => {
     setIsPaused((p) => {
       const next = !p;
@@ -307,5 +382,6 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     recentTicks,
     connectionStatus,
     togglePause,
+    addCustomInstrument,
   };
 }

@@ -155,6 +155,7 @@ export interface FomcMeeting {
   minutesReleaseDateWIB: string;
   hasSEP: boolean; // Summary of Economic Projections (Dot Plot)
   status: 'completed' | 'next' | 'upcoming';
+  decisionTimestamp?: string;
   rateBefore: string;
   rateAfterOrExpected: string;
   decisionOrExpectation: string;

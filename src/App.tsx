@@ -60,6 +60,7 @@ export function App() {
     recentTicks,
     connectionStatus,
     togglePause,
+    addCustomInstrument,
   } = useRealTimeMarket('BTCUSDT', '15m');
 
   const currentCandles = useMemo(() => {
@@ -131,16 +132,13 @@ export function App() {
     const cmd = commandInput.trim().toLowerCase();
     if (!cmd) return;
 
-    if (cmd.startsWith('/bug') || cmd.startsWith('/audit') || cmd.startsWith('/health')) {
+    if (cmd.startsWith('/bug') || cmd.startsWith('/audit') || cmd.startsWith('/health') || cmd.startsWith('/debug')) {
       setShowAuditModal(true);
     } else if (cmd.startsWith('/chart')) {
       const parts = cmd.split(' ');
       if (parts[1]) {
         const targetSym = parts[1].toUpperCase();
-        const found = instruments.find((i) => i.symbol === targetSym || i.displaySymbol.replace('/', '') === targetSym);
-        if (found) {
-          setSelectedSymbol(found.symbol);
-        }
+        addCustomInstrument(targetSym);
       }
       setActiveSection('chart');
     } else if (cmd.startsWith('/screener')) {
@@ -217,6 +215,7 @@ export function App() {
                 instruments={instruments}
                 selectedSymbol={selectedSymbol}
                 onSelectSymbol={setSelectedSymbol}
+                onAddCustomInstrument={addCustomInstrument}
                 recentTicks={recentTicks}
                 connectionStatus={connectionStatus}
               />
@@ -308,6 +307,7 @@ export function App() {
                   instruments={instruments}
                   selectedSymbol={selectedSymbol}
                   onSelectSymbol={setSelectedSymbol}
+                  onAddCustomInstrument={addCustomInstrument}
                   recentTicks={recentTicks}
                   connectionStatus={connectionStatus}
                 />

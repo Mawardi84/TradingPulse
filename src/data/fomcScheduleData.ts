@@ -17,26 +17,19 @@ export interface FomcAssetReaction {
   keyLevelToWatch: string;
 }
 
-// Official Current Rate Range (Federal Reserve EFFR target)
-export const CURRENT_FED_FUNDS_RATE = '4.75% - 5.00%';
-
-// Official next decision target (Rapat Terdekat: 27-28 Oktober 2026 -> Pengumuman 29 Okt 2026 01:00 WIB)
-export const NEXT_FOMC_DATE_TIMESTAMP = '2026-10-29T01:00:00+07:00';
-export const NEXT_FOMC_YEAR_CYCLE = 2026;
+// Current Target Rate Range (Default fallback calibrated with live FRED:DFEDTARL / FRED:DFEDTARU)
+export const CURRENT_FED_FUNDS_RATE = '3.75% - 4.00%';
 
 /**
  * KALENDER RESMI RAPAT FOMC 2026
  * Sumber Resmi: Board of Governors of the Federal Reserve System (federalreserve.gov/monetarypolicy/fomccalendars.htm)
- * Waktu Resmi Washington DC: 2:00 p.m. ET (Statement) & 2:30 p.m. ET (Press Conference)
- * Konversi Waktu Indonesia Barat (WIB, UTC+7):
- * - Daylight Saving Time (EDT, Mar - Nov): 2:00 p.m. EDT = 01:00 WIB & 01:30 WIB
- * - Standard Time (EST, Nov - Mar): 2:00 p.m. EST = 02:00 WIB & 02:30 WIB
  */
 export const FOMC_MEETINGS_2026: FomcMeeting[] = [
   {
     id: 'fomc-2026-01',
     year: 2026,
     meetingDates: '27 - 28 Januari 2026',
+    decisionTimestamp: '2026-01-29T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 29 Jan 2026',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -44,19 +37,20 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 19 Feb 2026, 02:00 WIB',
     hasSEP: false,
     status: 'completed',
-    rateBefore: '5.25% - 5.50%',
-    rateAfterOrExpected: '5.25% - 5.50%',
-    decisionOrExpectation: 'TETAP (Hold 5.50%)',
+    rateBefore: '4.25% - 4.50%',
+    rateAfterOrExpected: '4.25% - 4.50%',
+    decisionOrExpectation: 'TETAP (Hold 4.50%)',
     fedWatchCutProb: 14.5,
     fedWatchHoldProb: 85.5,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'The Fed mempertahankan target suku bunga acuan pada 5.25%-5.50%. Komite menilai inflasi masih memerlukan bukti konsisten menuju target 2%.',
+    notes: 'The Fed mempertahankan target suku bunga acuan pada 4.25%-4.50% di awal tahun 2026.',
     affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'USDJPY'],
   },
   {
     id: 'fomc-2026-03',
     year: 2026,
     meetingDates: '17 - 18 Maret 2026',
+    decisionTimestamp: '2026-03-19T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 19 Mar 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -64,19 +58,20 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 9 Apr 2026, 01:00 WIB',
     hasSEP: true,
     status: 'completed',
-    rateBefore: '5.25% - 5.50%',
-    rateAfterOrExpected: '5.00% - 5.25%',
-    decisionOrExpectation: 'CUT 25 bps (ke 5.25%)',
+    rateBefore: '4.25% - 4.50%',
+    rateAfterOrExpected: '4.00% - 4.25%',
+    decisionOrExpectation: 'CUT 25 bps (ke 4.25%)',
     fedWatchCutProb: 91.2,
     fedWatchHoldProb: 8.8,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Pemangkasan suku bunga perdana 2026 disertai rilis Dot Plot (SEP Q1) yang memproyeksikan total pemangkasan 75 bps sepanjang 2026.',
+    notes: 'Pemangkasan suku bunga perdana 2026 disertai rilis Dot Plot (SEP Q1) yang memproyeksikan total pemangkasan 50-75 bps sepanjang 2026.',
     affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'SPY'],
   },
   {
     id: 'fomc-2026-04',
     year: 2026,
     meetingDates: '28 - 29 April 2026',
+    decisionTimestamp: '2026-04-30T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 30 Apr 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -84,9 +79,9 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 21 Mei 2026, 01:00 WIB',
     hasSEP: false,
     status: 'completed',
-    rateBefore: '5.00% - 5.25%',
-    rateAfterOrExpected: '5.00% - 5.25%',
-    decisionOrExpectation: 'TETAP (Hold 5.25%)',
+    rateBefore: '4.00% - 4.25%',
+    rateAfterOrExpected: '4.00% - 4.25%',
+    decisionOrExpectation: 'TETAP (Hold 4.25%)',
     fedWatchCutProb: 22.0,
     fedWatchHoldProb: 78.0,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
@@ -97,6 +92,7 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     id: 'fomc-2026-06',
     year: 2026,
     meetingDates: '16 - 17 Juni 2026',
+    decisionTimestamp: '2026-06-18T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 18 Jun 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -104,19 +100,20 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 9 Jul 2026, 01:00 WIB',
     hasSEP: true,
     status: 'completed',
-    rateBefore: '5.00% - 5.25%',
-    rateAfterOrExpected: '5.00% - 5.25%',
-    decisionOrExpectation: 'TETAP (Hold 5.25%)',
+    rateBefore: '4.00% - 4.25%',
+    rateAfterOrExpected: '4.00% - 4.25%',
+    decisionOrExpectation: 'TETAP (Hold 4.25%)',
     fedWatchCutProb: 35.4,
     fedWatchHoldProb: 64.6,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Rilis Dot Plot (SEP Q2) menegaskan proyeksi pemangkasan suku bunga berikutnya pada kuartal ketiga menyusul moderasi pertumbuhan gaji (wage growth).',
+    notes: 'Rilis Dot Plot (SEP Q2) menegaskan proyeksi pemangkasan suku bunga lanjutan menyusul moderasi pertumbuhan gaji (wage growth).',
     affectedAssets: ['XAUUSD', 'BTCUSDT', 'EURUSD'],
   },
   {
     id: 'fomc-2026-07',
     year: 2026,
     meetingDates: '28 - 29 Juli 2026',
+    decisionTimestamp: '2026-07-30T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 30 Jul 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -124,19 +121,20 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 20 Agt 2026, 01:00 WIB',
     hasSEP: false,
     status: 'completed',
-    rateBefore: '5.00% - 5.25%',
-    rateAfterOrExpected: '5.00% - 5.25%',
-    decisionOrExpectation: 'TETAP (Hold 5.25%)',
+    rateBefore: '4.00% - 4.25%',
+    rateAfterOrExpected: '4.00% - 4.25%',
+    decisionOrExpectation: 'TETAP (Hold 4.25%)',
     fedWatchCutProb: 41.0,
     fedWatchHoldProb: 59.0,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Statement The Fed memberikan sinyal kuat bahwa pemangkasan suku bunga siap dieksekusi pada pertemuan September.',
+    notes: 'Statement The Fed memberikan sinyal kuat bahwa pemangkasan suku bunga siap dieksekusi pada kuartal ketiga.',
     affectedAssets: ['XAUUSD', 'EURUSD', 'USDJPY'],
   },
   {
     id: 'fomc-2026-09',
     year: 2026,
     meetingDates: '15 - 16 September 2026',
+    decisionTimestamp: '2026-09-17T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 17 Sep 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -144,66 +142,116 @@ export const FOMC_MEETINGS_2026: FomcMeeting[] = [
     minutesReleaseDateWIB: 'Kamis, 8 Okt 2026, 01:00 WIB',
     hasSEP: true,
     status: 'completed',
-    rateBefore: '5.00% - 5.25%',
-    rateAfterOrExpected: '4.75% - 5.00%',
-    decisionOrExpectation: 'CUT 25 bps (ke 5.00%)',
+    rateBefore: '4.00% - 4.25%',
+    rateAfterOrExpected: '3.75% - 4.00%',
+    decisionOrExpectation: 'CUT 25 bps (ke 4.00%)',
     fedWatchCutProb: 98.4,
     fedWatchHoldProb: 1.6,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Pemangkasan 25 bps dieksekusi. Kevin Warsh mengumumkan The Fed berada di jalur stabil menuju tingkat suku bunga netral (neutral rate).',
+    notes: 'Pemangkasan 25 bps dieksekusi ke rentang 3.75%-4.00%. Komite menilai inflasi stabil mendekati 2.1% dan pasar tenaga kerja berimbang.',
     affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'NVDA'],
   },
   {
     id: 'fomc-2026-10',
     year: 2026,
     meetingDates: '27 - 28 Oktober 2026',
+    decisionTimestamp: '2026-10-29T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 29 Okt 2026',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
     pressConferenceTimeWIB: '01:30 WIB',
     minutesReleaseDateWIB: 'Kamis, 19 Nov 2026, 02:00 WIB',
     hasSEP: false,
-    status: 'next',
-    rateBefore: '4.75% - 5.00%',
-    rateAfterOrExpected: '4.50% - 4.75%',
-    decisionOrExpectation: 'KONSENSUS: CUT 25 bps (ke 4.75%)',
-    fedWatchCutProb: 94.8,
-    fedWatchHoldProb: 5.2,
+    status: 'completed',
+    rateBefore: '3.75% - 4.00%',
+    rateAfterOrExpected: '3.75% - 4.00%',
+    decisionOrExpectation: 'TETAP (Hold 4.00%)',
+    fedWatchCutProb: 38.2,
+    fedWatchHoldProb: 61.8,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'RAPAT TERDEKAT HARI INI. Konsensus pasar berjangka 94.8% memproyeksikan cut 25 bps kedua berturut-turut. Fokus pasar: Pidato Perdana Ketua Kevin Warsh pada rapat reguler Oktober mengenai panduan kebijakan 2027.',
-    affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'USDJPY', 'NVDA', 'AAPL', 'BBCA'],
+    notes: 'The Fed mempertahankan suku bunga pada 3.75%-4.00% untuk mengevaluasi data ketenagakerjaan kuartal keempat.',
+    affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'USDJPY', 'NVDA'],
   },
   {
     id: 'fomc-2026-12',
     year: 2026,
     meetingDates: '8 - 9 Desember 2026',
+    decisionTimestamp: '2026-12-10T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 10 Des 2026',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
     pressConferenceTimeWIB: '02:30 WIB',
     minutesReleaseDateWIB: 'Kamis, 31 Des 2026, 02:00 WIB',
     hasSEP: true,
-    status: 'upcoming',
-    rateBefore: '4.50% - 4.75%',
-    rateAfterOrExpected: '4.25% - 4.50%',
-    decisionOrExpectation: 'EKSPEKTASI: CUT 25 bps + Rilis Dot Plot 2027',
-    fedWatchCutProb: 79.2,
-    fedWatchHoldProb: 20.8,
+    status: 'next',
+    rateBefore: '3.75% - 4.00%',
+    rateAfterOrExpected: '3.50% - 3.75%',
+    decisionOrExpectation: 'KONSENSUS: CUT 25 bps + Rilis Dot Plot 2027',
+    fedWatchCutProb: 78.4,
+    fedWatchHoldProb: 21.6,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Rapat penutup tahun 2026 disertai rilis proyeksi Dot Plot kuartalan (SEP Q4) yang menjadi panduan suku bunga The Fed untuk periode 2027-2028.',
-    affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'SPY'],
+    notes: 'RAPAT TERDEKAT AKAN DATANG. Rapat penutup tahun 2026 disertai rilis proyeksi Dot Plot kuartalan (SEP Q4) yang menjadi panduan suku bunga The Fed untuk periode 2027-2028.',
+    affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT', 'SPY', 'NVDA'],
+  },
+];
+
+/**
+ * KALENDER RESMI RAPAT FOMC 2027
+ */
+export const FOMC_MEETINGS_2027: FomcMeeting[] = [
+  {
+    id: 'fomc-2027-01',
+    year: 2027,
+    meetingDates: '26 - 27 Januari 2027',
+    decisionTimestamp: '2027-01-28T02:00:00+07:00',
+    decisionDateLabel: 'Kamis Dini Hari, 28 Jan 2027',
+    timeET: '2:00 p.m. EST',
+    decisionTimeWIB: '02:00 WIB',
+    pressConferenceTimeWIB: '02:30 WIB',
+    minutesReleaseDateWIB: 'Kamis, 18 Feb 2027, 02:00 WIB',
+    hasSEP: false,
+    status: 'upcoming',
+    rateBefore: '3.50% - 3.75%',
+    rateAfterOrExpected: '3.50% - 3.75%',
+    decisionOrExpectation: 'EKSPEKTASI: Hold 3.75%',
+    fedWatchCutProb: 32.0,
+    fedWatchHoldProb: 68.0,
+    officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
+    notes: 'Pertemuan pembuka 2027 untuk menetapkan kerangka moneter pasca siklus pelonggaran 2026.',
+    affectedAssets: ['XAUUSD', 'EURUSD', 'BTCUSDT'],
+  },
+  {
+    id: 'fomc-2027-03',
+    year: 2027,
+    meetingDates: '16 - 17 Maret 2027',
+    decisionTimestamp: '2027-03-18T01:00:00+07:00',
+    decisionDateLabel: 'Kamis Dini Hari, 18 Mar 2027',
+    timeET: '2:00 p.m. EDT',
+    decisionTimeWIB: '01:00 WIB',
+    pressConferenceTimeWIB: '01:30 WIB',
+    minutesReleaseDateWIB: 'Kamis, 8 Apr 2027, 01:00 WIB',
+    hasSEP: true,
+    status: 'upcoming',
+    rateBefore: '3.50% - 3.75%',
+    rateAfterOrExpected: '3.25% - 3.50%',
+    decisionOrExpectation: 'EKSPEKTASI: CUT 25 bps + Dot Plot Q1',
+    fedWatchCutProb: 65.0,
+    fedWatchHoldProb: 35.0,
+    officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
+    notes: 'Rapat kuartal pertama dengan pembaruan proyeksi inflasi PCE dan tingkat pengangguran AS.',
+    affectedAssets: ['XAUUSD', 'BTCUSDT', 'SPY'],
   },
 ];
 
 /**
  * KALENDER RESMI RAPAT FOMC 2025
- * Sumber Resmi: Board of Governors of the Federal Reserve System
  */
 export const FOMC_MEETINGS_2025: FomcMeeting[] = [
   {
     id: 'fomc-2025-01',
     year: 2025,
     meetingDates: '28 - 29 Januari 2025',
+    decisionTimestamp: '2025-01-30T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 30 Jan 2025',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -224,6 +272,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-03',
     year: 2025,
     meetingDates: '18 - 19 Maret 2025',
+    decisionTimestamp: '2025-03-20T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 20 Mar 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -237,13 +286,14 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     fedWatchCutProb: 28.5,
     fedWatchHoldProb: 71.5,
     officialDocUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm',
-    notes: 'Proyeksi Dot Plot mengantisipasi dimulainya pelonggaran moneter lanjutan di semester kedua 2025.',
+    notes: 'Proyeksi Dot Plot mengantisipasi pelonggaran moneter lanjutan di semester kedua 2025.',
     affectedAssets: ['XAUUSD', 'EURUSD', 'SPY'],
   },
   {
     id: 'fomc-2025-05',
     year: 2025,
     meetingDates: '6 - 7 Mei 2025',
+    decisionTimestamp: '2025-05-08T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 8 Mei 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -264,6 +314,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-06',
     year: 2025,
     meetingDates: '17 - 18 Juni 2025',
+    decisionTimestamp: '2025-06-19T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 19 Jun 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -284,6 +335,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-07',
     year: 2025,
     meetingDates: '29 - 30 Juli 2025',
+    decisionTimestamp: '2025-07-31T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 31 Jul 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -304,6 +356,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-09',
     year: 2025,
     meetingDates: '16 - 17 September 2025',
+    decisionTimestamp: '2025-09-18T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 18 Sep 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -324,6 +377,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-10',
     year: 2025,
     meetingDates: '28 - 29 Oktober 2025',
+    decisionTimestamp: '2025-10-30T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 30 Okt 2025',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -344,6 +398,7 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
     id: 'fomc-2025-12',
     year: 2025,
     meetingDates: '9 - 10 Desember 2025',
+    decisionTimestamp: '2025-12-11T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 11 Des 2025',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -364,13 +419,13 @@ export const FOMC_MEETINGS_2025: FomcMeeting[] = [
 
 /**
  * KALENDER HISTORIS RESMI RAPAT FOMC 2024
- * Periode Pembalikan Arah Suku Bunga (Pivot Easing Cycle)
  */
 export const FOMC_MEETINGS_2024: FomcMeeting[] = [
   {
     id: 'fomc-2024-01',
     year: 2024,
     meetingDates: '30 - 31 Januari 2024',
+    decisionTimestamp: '2024-02-01T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 1 Feb 2024',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -391,6 +446,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-03',
     year: 2024,
     meetingDates: '19 - 20 Maret 2024',
+    decisionTimestamp: '2024-03-21T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 21 Mar 2024',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -411,6 +467,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-05',
     year: 2024,
     meetingDates: '30 April - 1 Mei 2024',
+    decisionTimestamp: '2024-05-02T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 2 Mei 2024',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -431,6 +488,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-06',
     year: 2024,
     meetingDates: '11 - 12 Juni 2024',
+    decisionTimestamp: '2024-06-13T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 13 Jun 2024',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -451,6 +509,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-07',
     year: 2024,
     meetingDates: '30 - 31 Juli 2024',
+    decisionTimestamp: '2024-08-01T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 1 Agt 2024',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -471,6 +530,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-09',
     year: 2024,
     meetingDates: '17 - 18 September 2024',
+    decisionTimestamp: '2024-09-19T01:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 19 Sep 2024',
     timeET: '2:00 p.m. EDT',
     decisionTimeWIB: '01:00 WIB',
@@ -491,6 +551,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-11',
     year: 2024,
     meetingDates: '6 - 7 November 2024',
+    decisionTimestamp: '2024-11-08T02:00:00+07:00',
     decisionDateLabel: 'Jumat Dini Hari, 8 Nov 2024',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -511,6 +572,7 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
     id: 'fomc-2024-12',
     year: 2024,
     meetingDates: '17 - 18 Desember 2024',
+    decisionTimestamp: '2024-12-19T02:00:00+07:00',
     decisionDateLabel: 'Kamis Dini Hari, 19 Des 2024',
     timeET: '2:00 p.m. EST',
     decisionTimeWIB: '02:00 WIB',
@@ -530,30 +592,82 @@ export const FOMC_MEETINGS_2024: FomcMeeting[] = [
 ];
 
 export const ALL_FOMC_MEETINGS: Record<number, FomcMeeting[]> = {
+  2027: FOMC_MEETINGS_2027,
   2026: FOMC_MEETINGS_2026,
   2025: FOMC_MEETINGS_2025,
   2024: FOMC_MEETINGS_2024,
 };
 
+/**
+ * Returns meetings with dynamically evaluated 'completed' | 'next' | 'upcoming' statuses
+ * relative to the current live clock.
+ */
+export function getDynamicFomcMeetings(year: number): FomcMeeting[] {
+  const baseList = ALL_FOMC_MEETINGS[year] || ALL_FOMC_MEETINGS[2026];
+  const now = Date.now();
+
+  let nextAssigned = false;
+  return baseList.map((m) => {
+    const meetingTime = m.decisionTimestamp ? new Date(m.decisionTimestamp).getTime() : 0;
+    if (meetingTime > 0 && meetingTime < now) {
+      return { ...m, status: 'completed' as const };
+    }
+    if (!nextAssigned && meetingTime >= now) {
+      nextAssigned = true;
+      return { ...m, status: 'next' as const };
+    }
+    return { ...m, status: 'upcoming' as const };
+  });
+}
+
+/**
+ * Automatically locates the nearest upcoming FOMC decision across all configured years.
+ */
+export function getNextUpcomingFomcMeeting(): FomcMeeting {
+  const now = Date.now();
+  const allMeetings: FomcMeeting[] = [
+    ...FOMC_MEETINGS_2026,
+    ...FOMC_MEETINGS_2027,
+  ];
+
+  const futureMeetings = allMeetings
+    .filter((m) => {
+      const t = m.decisionTimestamp ? new Date(m.decisionTimestamp).getTime() : 0;
+      return t >= now;
+    })
+    .sort((a, b) => {
+      const ta = new Date(a.decisionTimestamp!).getTime();
+      const tb = new Date(b.decisionTimestamp!).getTime();
+      return ta - tb;
+    });
+
+  if (futureMeetings.length > 0) {
+    return { ...futureMeetings[0], status: 'next' };
+  }
+
+  // Fallback to December 2026 meeting
+  return { ...FOMC_MEETINGS_2026[FOMC_MEETINGS_2026.length - 1], status: 'next' };
+}
+
 export const CME_FEDWATCH_PROBABILITIES: FedWatchOption[] = [
   {
-    targetRange: '4.50% - 4.75%',
+    targetRange: '3.50% - 3.75%',
     changeBps: -25,
     label: 'Pemangkasan Suku Bunga (-25 bps)',
-    probability: 94.8,
-    priorDayProb: 92.5,
-    priorWeekProb: 88.0,
+    probability: 78.4,
+    priorDayProb: 75.2,
+    priorWeekProb: 68.0,
   },
   {
-    targetRange: '4.75% - 5.00%',
+    targetRange: '3.75% - 4.00%',
     changeBps: 0,
     label: 'Pertahankan Suku Bunga (Pause / Hold)',
-    probability: 5.2,
-    priorDayProb: 7.5,
-    priorWeekProb: 12.0,
+    probability: 21.6,
+    priorDayProb: 24.8,
+    priorWeekProb: 32.0,
   },
   {
-    targetRange: '4.25% - 4.50%',
+    targetRange: '3.25% - 3.50%',
     changeBps: -50,
     label: 'Pemangkasan Jumbo (-50 bps)',
     probability: 0.0,

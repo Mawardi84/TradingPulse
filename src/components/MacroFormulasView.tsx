@@ -42,7 +42,7 @@ export const MacroFormulasView: React.FC = () => {
                 if (f.key === 'cpi') { setActualInput('3.2'); setForecastInput('2.9'); setPreviousInput('3.0'); }
                 else if (f.key === 'ppi') { setActualInput('2.8'); setForecastInput('2.4'); setPreviousInput('2.2'); }
                 else if (f.key === 'nfp') { setActualInput('275'); setForecastInput('190'); setPreviousInput('220'); }
-                else if (f.key === 'fomc') { setActualInput('5.50'); setForecastInput('5.25'); setPreviousInput('5.25'); }
+                else if (f.key === 'fomc') { setActualInput('4.00'); setForecastInput('3.75'); setPreviousInput('4.00'); }
                 else if (f.key === 'yield') { setActualInput('4.35'); setForecastInput('4.20'); setPreviousInput('4.15'); }
               }}
               className={`p-3 rounded-lg border text-left transition-all ${

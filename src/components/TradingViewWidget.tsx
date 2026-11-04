@@ -8,31 +8,41 @@ export interface TradingViewWidgetProps {
 }
 
 export const getTradingViewSymbol = (symbol: string, category: string): string => {
+  if (symbol.includes(':')) return symbol;
   const symUpper = symbol.toUpperCase();
 
-  if (category === 'crypto') {
+  const map: Record<string, string> = {
+    BTCUSDT: 'BINANCE:BTCUSDT',
+    ETHUSDT: 'BINANCE:ETHUSDT',
+    SOLUSDT: 'BINANCE:SOLUSDT',
+    XRPUSDT: 'BINANCE:XRPUSDT',
+    ADAUSDT: 'BINANCE:ADAUSDT',
+    DOGEUSDT: 'BINANCE:DOGEUSDT',
+    NAS100: 'CAPITALCOM:NAS100',
+    US30: 'CAPITALCOM:US30',
+    SPX500: 'CAPITALCOM:US500',
+    GER40: 'CAPITALCOM:DE40',
+    UK100: 'CAPITALCOM:UK100',
+    DXY: 'TVC:DXY',
+    USDIDR: 'FX_IDC:USDIDR',
+    XAUUSD: 'OANDA:XAUUSD',
+    XAGUSD: 'OANDA:XAGUSD',
+    USOIL: 'TVC:USOIL',
+    UKOIL: 'TVC:UKOIL',
+    COPPER: 'COMEX:HG1!',
+  };
+
+  if (map[symUpper]) return map[symUpper];
+
+  if (category === 'crypto' || symUpper.endsWith('USDT')) {
     return `BINANCE:${symUpper}`;
   }
-
-  if (symUpper === 'XAUUSD') {
-    return 'OANDA:XAUUSD';
-  }
-  if (symUpper === 'XAGUSD') {
-    return 'OANDA:XAGUSD';
-  }
-  if (symUpper === 'USOIL') {
-    return 'TVC:USOIL';
-  }
-
   if (category === 'forex') {
-    if (symUpper === 'USDIDR') return 'FX_IDC:USDIDR';
     return `FX:${symUpper}`;
   }
-
   if (category === 'us_stocks') {
     return `NASDAQ:${symUpper}`;
   }
-
   if (category === 'idx_stocks') {
     return `IDX:${symUpper}`;
   }

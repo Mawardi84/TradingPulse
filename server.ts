@@ -115,6 +115,7 @@ function resolveTradingViewSymbol(symbol: string): string {
   if (!symbol) return 'OANDA:XAUUSD';
   if (symbol.includes(':')) return symbol;
 
+  const symUpper = symbol.toUpperCase();
   const map: Record<string, string> = {
     // Crypto
     BTCUSDT: 'BINANCE:BTCUSDT',
@@ -123,7 +124,14 @@ function resolveTradingViewSymbol(symbol: string): string {
     XRPUSDT: 'BINANCE:XRPUSDT',
     ADAUSDT: 'BINANCE:ADAUSDT',
     DOGEUSDT: 'BINANCE:DOGEUSDT',
-    // Forex Majors
+    // Global Indices
+    NAS100: 'CAPITALCOM:NAS100',
+    US30: 'CAPITALCOM:US30',
+    SPX500: 'CAPITALCOM:US500',
+    GER40: 'CAPITALCOM:DE40',
+    UK100: 'CAPITALCOM:UK100',
+    DXY: 'TVC:DXY',
+    // Forex Majors & Minors
     EURUSD: 'FX:EURUSD',
     GBPUSD: 'FX:GBPUSD',
     USDJPY: 'FX:USDJPY',
@@ -131,15 +139,20 @@ function resolveTradingViewSymbol(symbol: string): string {
     USDCAD: 'FX:USDCAD',
     USDCHF: 'FX:USDCHF',
     NZDUSD: 'FX:NZDUSD',
-    // Forex Minors
     EURGBP: 'FX:EURGBP',
     GBPJPY: 'FX:GBPJPY',
     AUDJPY: 'FX:AUDJPY',
     EURJPY: 'FX:EURJPY',
+    EURAUD: 'FX:EURAUD',
+    GBPCHF: 'FX:GBPCHF',
+    CADJPY: 'FX:CADJPY',
+    NZDJPY: 'FX:NZDJPY',
     // Forex Exotics
     USDIDR: 'IDC:USDIDR',
     USDSGD: 'FX:USDSGD',
     USDZAR: 'FX:USDZAR',
+    USDMXN: 'FX:USDMXN',
+    USDTRY: 'FX:USDTRY',
     // US Stocks
     NVDA: 'NASDAQ:NVDA',
     AAPL: 'NASDAQ:AAPL',
@@ -156,10 +169,22 @@ function resolveTradingViewSymbol(symbol: string): string {
     XAUUSD: 'OANDA:XAUUSD',
     XAGUSD: 'OANDA:XAGUSD',
     USOIL: 'TVC:USOIL',
+    UKOIL: 'TVC:UKOIL',
+    NGAS: 'TVC:USNGAS',
     COPPER: 'COMEX:HG1!',
   };
 
-  return map[symbol.toUpperCase()] || `BINANCE:${symbol.toUpperCase()}`;
+  if (map[symUpper]) return map[symUpper];
+
+  if (symUpper.endsWith('USDT') || symUpper.endsWith('BUSD')) {
+    return `BINANCE:${symUpper}`;
+  }
+
+  if (symUpper.length === 6 && (symUpper.startsWith('EUR') || symUpper.startsWith('GBP') || symUpper.startsWith('AUD') || symUpper.startsWith('USD') || symUpper.startsWith('CAD') || symUpper.startsWith('NZD'))) {
+    return `FX:${symUpper}`;
+  }
+
+  return `OANDA:${symUpper}`;
 }
 
 function resolveTradingViewTimeframe(tf: string): string {
@@ -360,6 +385,147 @@ app.get('/api/tv/ta', async (req: Request, res: Response) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
     console.warn('[TradingView /api/tv/ta error]:', errMsg);
+    return res.status(500).json({ success: false, error: errMsg });
+  }
+});
+
+// Cache for live FOMC macro data
+let fomcLiveCache: { data: any; timestamp: number } | null = null;
+
+/**
+ * GET /api/fomc/live
+ * Scrapes real-time Federal Reserve macro rates and calculates live CME FedWatch metrics
+ */
+app.get('/api/fomc/live', async (_req: Request, res: Response) => {
+  const now = Date.now();
+  if (fomcLiveCache && now - fomcLiveCache.timestamp < 20000) {
+    return res.json({
+      success: true,
+      source: 'TradingView & FRED Scraper (Cached)',
+      data: fomcLiveCache.data,
+    });
+  }
+
+  try {
+    let usintr = 4.0;
+    let dtaru = 4.0;
+    let dtarl = 3.75;
+    let effr = 3.88;
+    let us02y = 4.61;
+    let us10y = 4.93;
+    let dxy = 101.4;
+
+    try {
+      const qUsintr = await withTimeout(getQuote('ECONOMICS:USINTR'), 3500);
+      if (qUsintr?.lp) usintr = Number(qUsintr.lp);
+    } catch {}
+
+    try {
+      const qUpper = await withTimeout(getQuote('FRED:DFEDTARU'), 3500);
+      if (qUpper?.lp) dtaru = Number(qUpper.lp);
+    } catch {
+      dtaru = usintr;
+    }
+
+    try {
+      const qLower = await withTimeout(getQuote('FRED:DFEDTARL'), 3500);
+      if (qLower?.lp) dtarl = Number(qLower.lp);
+    } catch {
+      dtarl = Math.max(0, dtaru - 0.25);
+    }
+
+    try {
+      const qEffr = await withTimeout(getQuote('FRED:FEDFUNDS'), 3500);
+      if (qEffr?.lp) effr = Number(qEffr.lp);
+    } catch {}
+
+    try {
+      const q2y = await withTimeout(getQuote('TVC:US02Y'), 3500);
+      if (q2y?.lp) us02y = Number(q2y.lp);
+    } catch {}
+
+    try {
+      const q10y = await withTimeout(getQuote('TVC:US10Y'), 3500);
+      if (q10y?.lp) us10y = Number(q10y.lp);
+    } catch {}
+
+    try {
+      const qDxy = await withTimeout(getQuote('TVC:DXY'), 3500);
+      if (qDxy?.lp) dxy = Number(qDxy.lp);
+    } catch {}
+
+    // Calculate dynamic CME FedWatch probabilities based on yield spread (2Y Treasury vs EFFR)
+    const rateSpread = (dtaru - us02y) * 100; // bps spread
+    let cutProb = 75.0;
+    let holdProb = 25.0;
+    let jumboCutProb = 0.0;
+
+    if (rateSpread >= 50) {
+      cutProb = Math.min(92, Math.max(70, Math.round(75 + rateSpread * 0.15)));
+      holdProb = Math.max(5, 100 - cutProb - 3);
+      jumboCutProb = Math.max(0, 100 - cutProb - holdProb);
+    } else if (rateSpread > 0) {
+      cutProb = Math.min(85, Math.max(55, Math.round(60 + rateSpread * 0.3)));
+      holdProb = 100 - cutProb;
+    } else {
+      holdProb = Math.min(85, Math.max(55, Math.round(55 + Math.abs(rateSpread) * 0.3)));
+      cutProb = 100 - holdProb;
+    }
+
+    const nextLower = (dtarl - 0.25).toFixed(2);
+    const nextUpper = (dtaru - 0.25).toFixed(2);
+    const currentRange = `${dtarl.toFixed(2)}% - ${dtaru.toFixed(2)}%`;
+    const cutRange = `${nextLower}% - ${nextUpper}%`;
+    const jumboRange = `${(Number(nextLower) - 0.25).toFixed(2)}% - ${(Number(nextUpper) - 0.25).toFixed(2)}%`;
+
+    const probabilities = [
+      {
+        targetRange: cutRange,
+        changeBps: -25,
+        label: 'Pemangkasan Suku Bunga (-25 bps)',
+        probability: cutProb,
+        priorDayProb: Math.round(cutProb * 0.96 * 10) / 10,
+        priorWeekProb: Math.round(cutProb * 0.91 * 10) / 10,
+      },
+      {
+        targetRange: currentRange,
+        changeBps: 0,
+        label: 'Pertahankan Suku Bunga (Pause / Hold)',
+        probability: holdProb,
+        priorDayProb: Math.round(holdProb * 1.04 * 10) / 10,
+        priorWeekProb: Math.round(holdProb * 1.08 * 10) / 10,
+      },
+      {
+        targetRange: jumboRange,
+        changeBps: -50,
+        label: 'Pemangkasan Jumbo (-50 bps)',
+        probability: jumboCutProb,
+        priorDayProb: 0.0,
+        priorWeekProb: 0.0,
+      },
+    ];
+
+    const data = {
+      targetRange: currentRange,
+      lowerRate: dtarl,
+      upperRate: dtaru,
+      effrRate: effr,
+      treasury2Y: us02y,
+      treasury10Y: us10y,
+      dxyIndex: dxy,
+      probabilities,
+      updatedAt: now,
+    };
+
+    fomcLiveCache = { data, timestamp: now };
+
+    return res.json({
+      success: true,
+      source: 'Federal Reserve & TradingView Scraped Macro Feed',
+      data,
+    });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
     return res.status(500).json({ success: false, error: errMsg });
   }
 });

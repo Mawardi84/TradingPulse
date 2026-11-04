@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { Instrument } from '../types/market';
-import { Search, TrendingUp, TrendingDown, Radio, Activity } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, Radio, Activity, Plus } from 'lucide-react';
 import { RecentTickInfo, ConnectionStatus } from '../hooks/useRealTimeMarket';
 
 export const WatchlistTickerBar: React.FC<{
   instruments: Instrument[];
   selectedSymbol: string;
   onSelectSymbol: (symbol: string) => void;
+  onAddCustomInstrument?: (symbol: string) => void;
   recentTicks?: Record<string, RecentTickInfo>;
   connectionStatus?: ConnectionStatus;
 }> = ({
   instruments,
   selectedSymbol,
   onSelectSymbol,
+  onAddCustomInstrument,
   recentTicks = {},
   connectionStatus,
 }) => {
@@ -119,6 +121,21 @@ export const WatchlistTickerBar: React.FC<{
 
       {/* Horizontal Scrolling Watchlist Cards */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+        {searchQuery.trim().length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onAddCustomInstrument) {
+                onAddCustomInstrument(searchQuery.trim().toUpperCase());
+                setSearchQuery('');
+              }
+            }}
+            className="px-3 py-2 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-xs uppercase border border-black flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-md"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Tambah {searchQuery.trim().toUpperCase()} dari TradingView</span>
+          </button>
+        )}
         {filteredInstruments.map((inst) => {
           const isSelected = inst.symbol === selectedSymbol;
           const isUp = inst.changePercent24h >= 0;
