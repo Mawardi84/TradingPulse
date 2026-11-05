@@ -344,7 +344,7 @@ const tvCandlesCache = new Map<string, { candles: any[]; timestamp: number }>();
 const tvQuoteCache = new Map<string, { quote: any; timestamp: number }>();
 const tvTaCache = new Map<string, { ta: any; timestamp: number }>();
 
-function withTimeout<T>(promise: Promise<T>, ms: number = 7000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number = 10000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
@@ -358,19 +358,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number = 7000): Promise<T> {
  * Scrapes real OHLCV candles directly from TradingView without API key!
  */
 app.get('/api/tv/candles', async (req: Request, res: Response) => {
+  const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+  const rawTf = String(req.query.timeframe || '15m');
+  const count = Math.min(300, Math.max(10, parseInt(String(req.query.count || '100'), 10)));
+  const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+  const tvTimeframe = resolveTradingViewTimeframe(rawTf);
+  const cacheKey = `${tvSymbol}_${tvTimeframe}_${count}`;
+
   try {
-    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
-    const rawTf = String(req.query.timeframe || '15m');
-    const count = Math.min(300, Math.max(10, parseInt(String(req.query.count || '100'), 10)));
-
-    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
-    const tvTimeframe = resolveTradingViewTimeframe(rawTf);
-
-    const cacheKey = `${tvSymbol}_${tvTimeframe}_${count}`;
     const cached = tvCandlesCache.get(cacheKey);
     const now = Date.now();
 
-    if (cached && now - cached.timestamp < 10000) {
+    if (cached && now - cached.timestamp < 15000) {
       return res.json({
         success: true,
         source: 'TradingView Free Scraper (Cached)',
@@ -386,11 +385,21 @@ app.get('/api/tv/candles', async (req: Request, res: Response) => {
         timeframe: tvTimeframe as any,
         count,
       }),
-      6000
+      12000
     );
 
     if (!Array.isArray(rawCandles) || rawCandles.length === 0) {
-      return res.status(404).json({ success: false, error: 'No candles returned from TradingView' });
+      const fallbackCached = tvCandlesCache.get(cacheKey);
+      if (fallbackCached) {
+        return res.json({
+          success: true,
+          source: 'TradingView Free Scraper (Stale Fallback)',
+          symbol: tvSymbol,
+          timeframe: rawTf,
+          candles: fallbackCached.candles,
+        });
+      }
+      return res.status(200).json({ success: false, fallbackRequired: true, error: 'No candles returned from TradingView' });
     }
 
     const formattedCandles = rawCandles.map((c: any) => ({
@@ -413,7 +422,16 @@ app.get('/api/tv/candles', async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
-    console.warn('[TradingView /api/tv/candles error]:', errMsg);
+    const fallbackCached = tvCandlesCache.get(cacheKey);
+    if (fallbackCached) {
+      return res.json({
+        success: true,
+        source: 'TradingView Free Scraper (Stale Fallback)',
+        symbol: tvSymbol,
+        timeframe: rawTf,
+        candles: fallbackCached.candles,
+      });
+    }
     return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });
@@ -423,10 +441,10 @@ app.get('/api/tv/candles', async (req: Request, res: Response) => {
  * Scrapes real-time quote/ticker directly from TradingView!
  */
 app.get('/api/tv/quote', async (req: Request, res: Response) => {
-  try {
-    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
-    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+  const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+  const tvSymbol = resolveTradingViewSymbol(rawSymbol);
 
+  try {
     const cached = tvQuoteCache.get(tvSymbol);
     const now = Date.now();
 
@@ -438,7 +456,7 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
       });
     }
 
-    const rawQuote = await withTimeout(getQuote(tvSymbol), 4000);
+    const rawQuote = await withTimeout(getQuote(tvSymbol), 10000);
 
     const quote = {
       symbol: tvSymbol,
@@ -468,7 +486,14 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
-    console.warn('[TradingView /api/tv/quote error]:', errMsg);
+    const fallbackCached = tvQuoteCache.get(tvSymbol);
+    if (fallbackCached) {
+      return res.json({
+        success: true,
+        source: 'TradingView Free Scraper (Stale Fallback)',
+        quote: fallbackCached.quote,
+      });
+    }
     return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });
@@ -480,7 +505,7 @@ app.get('/api/tv/quote', async (req: Request, res: Response) => {
 app.get('/api/tv/search', async (req: Request, res: Response) => {
   try {
     const query = String(req.query.q || req.query.query || 'GOLD');
-    const results = await withTimeout(searchMarkets(query), 5000);
+    const results = await withTimeout(searchMarkets(query), 8000);
     return res.json({
       success: true,
       source: 'TradingView Market Search',
@@ -488,7 +513,6 @@ app.get('/api/tv/search', async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
-    console.warn('[TradingView /api/tv/search error]:', errMsg);
     return res.status(200).json({ success: false, fallbackRequired: true, results: [], error: errMsg });
   }
 });
@@ -498,10 +522,10 @@ app.get('/api/tv/search', async (req: Request, res: Response) => {
  * Technical analysis ratings scraped from TradingView
  */
 app.get('/api/tv/ta', async (req: Request, res: Response) => {
-  try {
-    const rawSymbol = String(req.query.symbol || 'BTCUSDT');
-    const tvSymbol = resolveTradingViewSymbol(rawSymbol);
+  const rawSymbol = String(req.query.symbol || 'BTCUSDT');
+  const tvSymbol = resolveTradingViewSymbol(rawSymbol);
 
+  try {
     const cached = tvTaCache.get(tvSymbol);
     const now = Date.now();
 
@@ -513,7 +537,7 @@ app.get('/api/tv/ta', async (req: Request, res: Response) => {
       });
     }
 
-    const ta = await withTimeout(getTechnicalAnalysis(tvSymbol), 4000);
+    const ta = await withTimeout(getTechnicalAnalysis(tvSymbol), 8000);
     tvTaCache.set(tvSymbol, { ta, timestamp: now });
 
     return res.json({
@@ -523,7 +547,14 @@ app.get('/api/tv/ta', async (req: Request, res: Response) => {
     });
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : 'Unknown error';
-    console.warn('[TradingView /api/tv/ta error]:', errMsg);
+    const fallbackCached = tvTaCache.get(tvSymbol);
+    if (fallbackCached) {
+      return res.json({
+        success: true,
+        source: 'TradingView Technical Analysis (Stale Fallback)',
+        ta: fallbackCached.ta,
+      });
+    }
     return res.status(200).json({ success: false, fallbackRequired: true, error: errMsg });
   }
 });

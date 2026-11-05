@@ -86,10 +86,8 @@ service cloud.firestore {
       // 5. User Settings
       match /settings/terminal {
         allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidSettings(incoming()) && incoming().userId == userId &&
-                        incoming().createdAt == request.time && incoming().updatedAt == request.time;
-        allow update: if isOwner(userId) && isValidSettings(incoming()) &&
-                        incoming().updatedAt == request.time;
+        allow create, update: if isOwner(userId) && isValidSettings(incoming());
+        allow delete: if isOwner(userId);
       }
 
       // 6. Quant Scripts (Sub-collection)

@@ -78,6 +78,12 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     return;
   }
   
+  // For terminal settings background synchronization, log but do not throw unhandled exception
+  if (path && path.includes('settings/terminal')) {
+    console.warn('Silent Firestore warning (Settings sync):', message);
+    return;
+  }
+  
   throw new Error(JSON.stringify(errInfo));
 }
 
@@ -184,21 +190,15 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
           setIsCloudSyncing(true);
           try {
             const docRef = doc(db, path);
-            const docSnap = await getDoc(docRef);
-            
-            if (!docSnap.exists()) {
-              await setDoc(docRef, {
+            await setDoc(
+              docRef,
+              {
                 userId: user.uid,
                 layoutConfig: JSON.stringify(layout),
-                createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
-              });
-            } else {
-              await setDoc(docRef, {
-                layoutConfig: JSON.stringify(layout),
-                updatedAt: serverTimestamp(),
-              }, { merge: true });
-            }
+              },
+              { merge: true }
+            );
           } catch (err) {
             handleFirestoreError(err, OperationType.WRITE, path);
           } finally {
