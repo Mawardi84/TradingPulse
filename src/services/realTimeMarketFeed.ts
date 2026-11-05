@@ -29,6 +29,7 @@ export interface MarketTick {
   volume24h: number;
   tickDirection: 'up' | 'down';
   timestamp: number;
+  latencyMs?: number;
 }
 
 export type TickCallback = (tick: MarketTick) => void;
@@ -346,6 +347,9 @@ export class RealTimeMarketFeed {
 
             const change = newPrice - open;
             const changePercent = open !== 0 ? (change / open) * 100 : 0;
+            const now = Date.now();
+            const eventTime = typeof data.E === 'number' ? data.E : 0;
+            const latencyMs = eventTime > 0 && now >= eventTime ? Math.max(1, now - eventTime) : undefined;
 
             this.notify({
               symbol: sym,
@@ -356,7 +360,8 @@ export class RealTimeMarketFeed {
               low24h: low,
               volume24h: quoteVol,
               tickDirection: tickDir,
-              timestamp: Date.now(),
+              timestamp: now,
+              latencyMs,
             });
           }
         } catch (e) {
@@ -390,10 +395,11 @@ export class RealTimeMarketFeed {
       clearInterval(this.interbankIntervalId);
     }
 
-    // Apply continuous interbank liquidity ticks to Gold (XAUUSD), Commodities, Forex, Stocks
-    // and non-crypto instruments so Gold and Forex feeds NEVER stop or freeze during low WS traffic!
+    // Only generate synthetic ticks for instruments that DO NOT have a real live data source.
+    // Instruments with live TradingView quotes (XAUUSD, XAGUSD, USOIL, COPPER) or Binance WS are excluded.
+    const liveScrapedSymbols = new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER']);
     const tickCandidates = instruments.filter(
-      (i) => i.symbol === 'XAUUSD' || i.category !== 'crypto' || !i.binanceSymbol
+      (i) => !liveScrapedSymbols.has(i.symbol) && (i.category !== 'crypto' || !i.binanceSymbol)
     );
 
     this.interbankIntervalId = setInterval(() => {

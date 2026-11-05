@@ -43,7 +43,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     tickCount: 0,
     lastTickTime: Date.now(),
     lastTickSymbol: initialSymbol,
-    ping: '0.12',
+    ping: '--',
     isPaused: false,
   });
 
@@ -152,7 +152,6 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
         if (isCancelled) break;
         try {
           const tvQuote = await fetchTradingViewQuote(sym);
-          console.log(`[DEBUG] Quote for ${sym}:`, tvQuote);
           if (isCancelled || !tvQuote || tvQuote.price <= 0) continue;
 
           // Update marketFeedSingleton priceCache so ticks continue from live scraped TradingView price
@@ -244,7 +243,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
         tickCount: prev.tickCount + 1,
         lastTickTime: now,
         lastTickSymbol: tick.symbol,
-        ping: (0.12 + Math.random() * 0.03).toFixed(2),
+        ping: tick.latencyMs !== undefined ? tick.latencyMs.toString() : prev.ping,
       }));
 
       // If the incoming tick belongs to currently viewed symbol, update the latest candle in real-time!

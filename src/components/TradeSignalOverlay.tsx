@@ -72,22 +72,9 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
   const highestCandleHigh = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : price + 1.20;
   const lowestCandleLow = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : price - 1.20;
 
-  // Directional Bias using multi-factor technical rating & momentum
+  // Directional Bias genuinely derived from technical indicators & SMC structure
   const signalCalculation = useMemo(() => {
-    const score = technicalSummary.score;
-    const buyCount = technicalSummary.buyCount;
-    const sellCount = technicalSummary.sellCount;
     const pivotP = technicalSummary.pivots?.p || price;
-
-    let signalType: 'BUY' | 'SELL';
-    if (score >= 15 || buyCount >= sellCount + 2) {
-      signalType = 'BUY';
-    } else if (score <= -15 || sellCount >= buyCount + 2) {
-      signalType = 'SELL';
-    } else {
-      // Moderate trend or consolidation: align with price relative to Classic Daily Pivot
-      signalType = price >= pivotP ? 'BUY' : 'SELL';
-    }
 
     // S&D Zones closest to spot
     const activeDemandZones = zones.filter((z) => z.type === 'demand');
@@ -100,24 +87,51 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
       .filter((z) => z.bottom >= price)
       .sort((a, b) => a.bottom - b.bottom)[0];
 
-    // Compute Confluence Score based on 5 actual quantitative criteria
-    let factorsMet = 0;
-    const totalFactors = 5;
+    // Find specific indicator readings from evaluateTechnicalSummary
+    const rsiReading = technicalSummary.readings.find((r) => r.name.toLowerCase().includes('relative strength'));
+    const macdReading = technicalSummary.readings.find((r) => r.name.toLowerCase().includes('macd'));
+    const stochReading = technicalSummary.readings.find((r) => r.name.toLowerCase().includes('stochastic'));
 
-    // Factor 1: Overall rating aligns
-    if ((signalType === 'BUY' && score > 0) || (signalType === 'SELL' && score < 0)) factorsMet++;
-    // Factor 2: MA Rating confirms
-    if ((signalType === 'BUY' && technicalSummary.maRating.includes('Buy')) ||
-        (signalType === 'SELL' && technicalSummary.maRating.includes('Sell'))) factorsMet++;
-    // Factor 3: Oscillators confirm
-    if ((signalType === 'BUY' && technicalSummary.oscillatorsRating.includes('Buy')) ||
-        (signalType === 'SELL' && technicalSummary.oscillatorsRating.includes('Sell'))) factorsMet++;
-    // Factor 4: Structure support (Demand for Buy, Supply for Sell)
-    if ((signalType === 'BUY' && nearestDemand) || (signalType === 'SELL' && nearestSupply)) factorsMet++;
-    // Factor 5: Momentum confirms (24h change & pivot position)
-    if ((signalType === 'BUY' && price >= pivotP) || (signalType === 'SELL' && price < pivotP)) factorsMet++;
+    // 6 Core Quantitative Factors
+    let bullishVotes = 0;
+    let bearishVotes = 0;
 
-    const confluenceScore = Math.min(96, Math.max(74, Math.round(70 + (factorsMet / totalFactors) * 25)));
+    // 1. RSI Indicator
+    const rsiAction = rsiReading?.action || 'Neutral';
+    if (rsiAction === 'Buy') bullishVotes++;
+    else if (rsiAction === 'Sell') bearishVotes++;
+
+    // 2. MACD Level & Histogram
+    const macdAction = macdReading?.action || 'Neutral';
+    if (macdAction === 'Buy') bullishVotes++;
+    else if (macdAction === 'Sell') bearishVotes++;
+
+    // 3. Stochastic Oscillator
+    const stochAction = stochReading?.action || 'Neutral';
+    if (stochAction === 'Buy') bullishVotes++;
+    else if (stochAction === 'Sell') bearishVotes++;
+
+    // 4. Moving Averages Consensus
+    const maBullish = technicalSummary.maRating.toLowerCase().includes('buy');
+    const maBearish = technicalSummary.maRating.toLowerCase().includes('sell');
+    if (maBullish) bullishVotes++;
+    else if (maBearish) bearishVotes++;
+
+    // 5. Classic Pivot Point (Price above Pivot = Bullish, below = Bearish)
+    const pivotBullish = price >= pivotP;
+    if (pivotBullish) bullishVotes++;
+    else bearishVotes++;
+
+    // 6. Supply & Demand Structure Proximity
+    const distToDemand = nearestDemand ? Math.abs(price - nearestDemand.top) : Infinity;
+    const distToSupply = nearestSupply ? Math.abs(nearestSupply.bottom - price) : Infinity;
+    if (distToDemand < distToSupply) bullishVotes++;
+    else if (distToSupply < distToDemand) bearishVotes++;
+
+    const totalFactors = 6;
+    const signalType: 'BUY' | 'SELL' = bullishVotes >= bearishVotes ? 'BUY' : 'SELL';
+    const factorsMet = signalType === 'BUY' ? bullishVotes : bearishVotes;
+    const confluenceScore = Math.round((factorsMet / totalFactors) * 100);
 
     let entryPrice = price;
     let slPrice = price;
@@ -127,7 +141,7 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
 
     if (isGold) {
       // Gold Specific Trading Formula strictly anchored to current live spot price
-      const isTrendKuat = Math.abs(instrument.changePercent24h) >= 1.0 || Math.abs(score) >= 30;
+      const isTrendKuat = Math.abs(instrument.changePercent24h) >= 1.0 || Math.abs(technicalSummary.score) >= 30;
       const goldOffset = 1.20; // 1.2 USD offset for Limit orders relative to current live spot price
 
       if (signalType === 'BUY') {
@@ -325,8 +339,8 @@ Model: ${strategyLabel} [Volatilitas ATR: $${atr.toFixed(dec)}]`;
                   >
                     REKOMENDASI {signalType} LIMIT
                   </span>
-                  <span className="text-[10px] px-1 py-0.2 bg-yellow-400 text-black font-bold">
-                    {confluenceScore}% OK
+                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-400 text-black font-extrabold">
+                    {confluenceScore}% ({factorsMet}/{totalFactors} Indikator)
                   </span>
                 </div>
                 <div className="text-[11px] text-zinc-300 mt-0.5">

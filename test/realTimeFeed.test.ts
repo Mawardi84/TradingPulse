@@ -13,7 +13,7 @@ after(() => {
   setTimeout(() => process.exit(0), 100);
 });
 
-test('RealTimeMarketFeed subscription and tick notification flow', () => {
+test('RealTimeMarketFeed subscription and tick notification flow', { timeout: 5000 }, () => {
   return new Promise<void>((resolve) => {
     const feed = new RealTimeMarketFeed();
     let tickCount = 0;

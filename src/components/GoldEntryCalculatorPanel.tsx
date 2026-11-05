@@ -237,7 +237,7 @@ Harga Acuan M5: $${entryType === 'BUY_LIMIT' ? resistenM5.toFixed(2) : supportM5
 Formula: ${res.formulaStr}
 📍 Entri ${entryType}: $${res.calculatedPrice.toFixed(2)}
 🛑 Stop Loss: $${res.slPrice.toFixed(2)}
-🎯 Take Profit (${res.tpPipsMin}-${res.tpPipsMax} pips): $${res.tpPriceMin.toFixed(2)} - $${res.tpPriceMax.toFixed(2)}
+🎯 Take Profit (${res.tpPipsMin}-${res.tpPipsMax} pips): $${Math.min(res.tpPriceMin, res.tpPriceMax).toFixed(2)} - $${Math.max(res.tpPriceMin, res.tpPriceMax).toFixed(2)}
 [AstraView AI Setup Engine]`;
 
     navigator.clipboard.writeText(text);
@@ -524,7 +524,7 @@ Formula: ${res.formulaStr}
                     ${res.slPrice.toFixed(2)}
                   </td>
                   <td className="py-2.5 px-3 text-emerald-400 font-mono font-semibold">
-                    ${res.tpPriceMin.toFixed(2)} - ${res.tpPriceMax.toFixed(2)}
+                    ${Math.min(res.tpPriceMin, res.tpPriceMax).toFixed(2)} - ${Math.max(res.tpPriceMin, res.tpPriceMax).toFixed(2)}
                     <span className="text-[10px] text-slate-400 block font-normal">
                       ({res.tpPipsMin} - {res.tpPipsMax} Pips)
                     </span>

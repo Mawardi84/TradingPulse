@@ -102,8 +102,9 @@ export const WatchlistTickerBar: React.FC<{
               </span>
               <span className="text-slate-500">|</span>
               <span className="text-slate-400">{connectionStatus.tickCount.toLocaleString()} ticks</span>
-              <span className="text-slate-500">|</span>
-              <span className="text-cyan-400">{connectionStatus.ping}ms</span>
+              <span className="text-cyan-400">
+                {connectionStatus.ping && connectionStatus.ping !== '--' ? `${connectionStatus.ping}ms` : '--'}
+              </span>
             </div>
           )}
 
