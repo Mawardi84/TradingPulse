@@ -24,6 +24,11 @@ import {
   Columns,
   Rows,
   RefreshCw,
+  Zap,
+  TrendingUp,
+  BarChart2,
+  ArrowLeft,
+  Activity,
 } from 'lucide-react';
 
 enum OperationType {
@@ -152,8 +157,24 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
     'technicals' | 'fundamentals' | 'sentiment' | 'multiasset' | 'chat'
   >('technicals');
   const [activePendingOrder, setActivePendingOrder] = useState<PendingOrder | null>(null);
-  const [isResizingHeight, setIsResizingHeight] = useState(false);
-  const [isResizingColumns, setIsResizingColumns] = useState(false);
+
+  // Screen width detection for responsive smartphone, tablet, and desktop layout
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1280;
+  });
+
+  // Mobile / Tablet Active View: 'chart' | 'order' | 'analysis'
+  const [mobileView, setMobileView] = useState<'chart' | 'order' | 'analysis'>('chart');
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1280);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { user } = useFirebase();
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
@@ -222,21 +243,24 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
     setLayout(defaultLayout);
   };
 
-  const movePanel = (index: number, direction: 'up' | 'down') => {
-    if (layout.isLocked) return;
-    const newOrder = [...layout.panelOrder];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
-    const temp = newOrder[index];
-    newOrder[index] = newOrder[targetIndex];
-    newOrder[targetIndex] = temp;
-    setLayout((prev) => ({ ...prev, panelOrder: newOrder }));
+  const handleExecuteTradeAction = (order: { type: 'BUY' | 'SELL'; price: number; sl: number; tp: number }) => {
+    setActivePendingOrder({
+      type: order.type,
+      price: order.price,
+      sl: order.sl,
+      tp: order.tp,
+      timestamp: Date.now(),
+    });
+    // On smartphone/tablet, automatically navigate to order ticket tab with prefilled parameters
+    if (!isDesktop) {
+      setMobileView('order');
+    }
   };
 
   return (
-    <div className="flex flex-col flex-1 h-[calc(100vh-60px)] overflow-hidden bg-black text-white font-mono text-[11px]">
-      {/* Grid Layout Customizer Toolbar */}
-      <div className="bg-zinc-950 border-b border-white px-3 py-1.5 flex items-center justify-between gap-3 shrink-0">
+    <div className="flex flex-col flex-1 min-h-[calc(100vh-60px)] xl:h-[calc(100vh-60px)] xl:overflow-hidden bg-black text-white font-mono text-[11px] overflow-x-hidden">
+      {/* 1. Desktop Only: Grid Layout Customizer Toolbar */}
+      <div className="hidden xl:flex bg-zinc-950 border-b border-white px-3 py-1.5 items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-yellow-400 text-black flex items-center justify-center font-extrabold text-[9px]">
             GL
@@ -244,7 +268,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
           <span className="font-bold text-white uppercase tracking-wider text-[11px]">
             GRID LAYOUT MANAGER (DRAG & RESIZE)
           </span>
-          <span className="text-zinc-400 text-[10px] hidden sm:inline">
+          <span className="text-zinc-400 text-[10px]">
             {layout.isLocked ? '• Layout Terkunci' : '• Mode Kustomisasi Aktif'}
           </span>
           {isCloudSyncing && (
@@ -256,7 +280,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
 
         <div className="flex items-center gap-2">
           {/* Column Span Slider (Desktop) */}
-          <div className="hidden xl:flex items-center gap-1.5 text-[10px] text-zinc-300 border-r border-zinc-800 pr-2">
+          <div className="flex items-center gap-1.5 text-[10px] text-zinc-300 border-r border-zinc-800 pr-2">
             <Columns className="w-3.5 h-3.5 text-yellow-400" />
             <span>Lebar Chart ({layout.chartColumnSpan}/12):</span>
             <input
@@ -300,17 +324,60 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
             title="Reset ke Layout Default"
           >
             <RotateCcw className="w-3 h-3" />
-            <span className="hidden sm:inline">Reset</span>
+            <span>Reset</span>
           </button>
         </div>
       </div>
 
-      {/* Main Grid View */}
-      <main className="grid grid-cols-12 gap-0 flex-1 overflow-hidden">
+      {/* 2. Mobile & Tablet Only: High-Contrast Segmented Navigation Bar */}
+      <div className="flex xl:hidden bg-zinc-950 border-b border-white text-[11px] font-bold shrink-0 sticky top-0 z-30 shadow-md">
+        <button
+          type="button"
+          onClick={() => setMobileView('chart')}
+          className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 uppercase tracking-wider transition-colors border-r border-zinc-800 ${
+            mobileView === 'chart'
+              ? 'bg-yellow-400 text-black font-extrabold shadow-sm'
+              : 'text-zinc-400 hover:text-white bg-black'
+          }`}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          <span>Grafik & Sinyal</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView('order')}
+          className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 uppercase tracking-wider transition-colors border-r border-zinc-800 ${
+            mobileView === 'order'
+              ? 'bg-yellow-400 text-black font-extrabold shadow-sm'
+              : 'text-zinc-400 hover:text-white bg-black'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span>Tiket Order</span>
+          {activePendingOrder && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView('analysis')}
+          className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 uppercase tracking-wider transition-colors ${
+            mobileView === 'analysis'
+              ? 'bg-yellow-400 text-black font-extrabold shadow-sm'
+              : 'text-zinc-400 hover:text-white bg-black'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Analisis ({chartSideTab.slice(0, 4).toUpperCase()})</span>
+        </button>
+      </div>
+
+      {/* 3. DESKTOP VIEW (Screens >= 1280px / xl): Full Multi-Column Workstation */}
+      <main className="hidden xl:grid grid-cols-12 gap-0 flex-1 overflow-hidden">
         {/* Left Column: Chart Area */}
         <div
           style={{ gridColumn: `span ${layout.chartColumnSpan} / span ${layout.chartColumnSpan}` }}
-          className="col-span-12 xl:col-span-8 flex flex-col h-full overflow-hidden border-b xl:border-b-0 xl:border-r border-zinc-800 bg-black"
+          className="flex flex-col h-full overflow-hidden border-r border-zinc-800 bg-black"
         >
           {/* Watchlist Ticker Bar */}
           <div className="border-b border-white shrink-0">
@@ -332,15 +399,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
               timeframe={timeframe}
               onTimeframeChange={setTimeframe}
               liveSource={connectionStatus.source}
-              onExecuteTrade={(order) => {
-                setActivePendingOrder({
-                  type: order.type,
-                  price: order.price,
-                  sl: order.sl,
-                  tp: order.tp,
-                  timestamp: Date.now(),
-                });
-              }}
+              onExecuteTrade={handleExecuteTradeAction}
               onOpenBotManager={() => {
                 setActiveSection('bot');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -363,7 +422,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
                   const startY = e.clientY;
                   const startHeight = layout.orderWidgetHeight;
                   const onMouseMove = (moveEvent: MouseEvent) => {
-                    const diff = startY - moveEvent.clientY; // dragging up increases height
+                    const diff = startY - moveEvent.clientY;
                     const newH = Math.min(450, Math.max(120, startHeight + diff));
                     setLayout((prev) => ({ ...prev, orderWidgetHeight: newH }));
                   };
@@ -393,7 +452,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
         {/* Right Column: Analysis Panels */}
         <div
           style={{ gridColumn: `span ${12 - layout.chartColumnSpan} / span ${12 - layout.chartColumnSpan}` }}
-          className="col-span-12 xl:col-span-4 bg-black border-l-0 xl:border-l border-zinc-800 flex flex-col h-full overflow-hidden"
+          className="bg-black border-l border-zinc-800 flex flex-col h-full overflow-hidden"
         >
           {/* Analysis Tab Switcher */}
           <div className="flex items-center gap-0 bg-black border-b border-white p-0 overflow-x-auto text-[10px] font-bold shrink-0">
@@ -446,6 +505,191 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
           </div>
         </div>
       </main>
+
+      {/* 4. SMARTPHONE & TABLET VIEW (< 1280px): Full-Width Focused Views */}
+      <div className="flex xl:hidden flex-col flex-1 overflow-y-auto pb-28 bg-black">
+          {mobileView === 'chart' && (
+            <div className="flex flex-col space-y-0">
+              {/* Watchlist Ticker Bar */}
+              <div className="border-b border-white shrink-0">
+                <WatchlistTickerBar
+                  instruments={instruments}
+                  selectedSymbol={selectedSymbol}
+                  onSelectSymbol={setSelectedSymbol}
+                  onAddCustomInstrument={addCustomInstrument}
+                  recentTicks={recentTicks}
+                  connectionStatus={connectionStatus}
+                />
+              </div>
+
+              {/* Trading Chart Canvas */}
+              <div className="bg-black">
+                <TradingChartCanvas
+                  instrument={selectedInstrument}
+                  candles={candles}
+                  timeframe={timeframe}
+                  onTimeframeChange={setTimeframe}
+                  liveSource={connectionStatus.source}
+                  onExecuteTrade={handleExecuteTradeAction}
+                  onOpenBotManager={() => {
+                    setActiveSection('bot');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  activeIndicators={activeIndicators}
+                />
+              </div>
+
+              {/* Mobile Quick Trade & Jump Action Bar */}
+              <div className="p-2.5 bg-zinc-950 border-t border-zinc-800 flex flex-col gap-2 shrink-0">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleExecuteTradeAction({
+                      type: 'BUY',
+                      price: selectedInstrument.price,
+                      sl: Number((selectedInstrument.price * 0.992).toFixed(selectedInstrument.decimals)),
+                      tp: Number((selectedInstrument.price * 1.018).toFixed(selectedInstrument.decimals)),
+                    })}
+                    className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase flex items-center justify-center gap-1 border border-emerald-400 transition-colors cursor-pointer shadow-md"
+                  >
+                    <span>BUY ${selectedInstrument.price.toLocaleString(undefined, { minimumFractionDigits: selectedInstrument.decimals })}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleExecuteTradeAction({
+                      type: 'SELL',
+                      price: selectedInstrument.price,
+                      sl: Number((selectedInstrument.price * 1.008).toFixed(selectedInstrument.decimals)),
+                      tp: Number((selectedInstrument.price * 0.982).toFixed(selectedInstrument.decimals)),
+                    })}
+                    className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs uppercase flex items-center justify-center gap-1 border border-rose-500 transition-colors cursor-pointer shadow-md"
+                  >
+                    <span>SELL ${selectedInstrument.price.toLocaleString(undefined, { minimumFractionDigits: selectedInstrument.decimals })}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setMobileView('order')}
+                    className="flex-1 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold uppercase flex items-center justify-center gap-1 border border-black transition-colors cursor-pointer"
+                  >
+                    <Zap className="w-3 h-3 fill-black stroke-none" />
+                    <span>Tiket Order Custom</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMobileView('analysis')}
+                    className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-bold border border-zinc-700 transition-colors uppercase cursor-pointer"
+                  >
+                    Analisis 📊
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mobileView === 'order' && (
+            <div className="flex flex-col space-y-2 p-2">
+              {/* Asset Header Bar */}
+              <div className="flex items-center justify-between bg-zinc-950 p-2.5 border border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMobileView('chart')}
+                    className="p-1.5 bg-zinc-900 hover:bg-zinc-800 text-yellow-400 border border-zinc-700 cursor-pointer"
+                    title="Kembali ke Grafik"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-white text-xs">{selectedInstrument.displaySymbol}</span>
+                      <span className={`text-[10px] font-bold ${selectedInstrument.changePercent24h >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {selectedInstrument.changePercent24h >= 0 ? '+' : ''}{selectedInstrument.changePercent24h.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-zinc-400">
+                      Spot Live: ${selectedInstrument.price.toLocaleString(undefined, { minimumFractionDigits: selectedInstrument.decimals })}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileView('chart')}
+                  className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] font-bold border border-zinc-700 uppercase cursor-pointer flex items-center gap-1"
+                >
+                  <TrendingUp className="w-3 h-3 text-yellow-400" />
+                  <span>Grafik</span>
+                </button>
+              </div>
+
+              {/* Full-width Order Widget */}
+              <div className="w-full">
+                <ChartTradingWidget
+                  instrument={selectedInstrument}
+                  allInstruments={instruments}
+                  pendingOrder={activePendingOrder}
+                />
+              </div>
+            </div>
+          )}
+
+          {mobileView === 'analysis' && (
+            <div className="flex flex-col bg-black">
+              {/* Analysis Sub-Tabs */}
+              <div className="flex items-center gap-0 bg-black border-b border-white p-0 overflow-x-auto text-[10px] font-bold shrink-0 sticky top-10 z-20">
+                {['technicals', 'fundamentals', 'sentiment', 'multiasset', 'chat'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setChartSideTab(tab as any)}
+                    className={`px-3.5 py-2 uppercase tracking-wider transition-colors border-r border-white cursor-pointer shrink-0 ${
+                      chartSideTab === tab ? 'text-black bg-yellow-400 font-extrabold' : 'text-white hover:bg-zinc-800'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Full-width Analysis Content */}
+              <div className="p-2 bg-black">
+                {chartSideTab === 'technicals' && (
+                  <TechnicalAnalysisPanel instrument={selectedInstrument} candles={candles} />
+                )}
+                {chartSideTab === 'fundamentals' && (
+                  <FundamentalSummaryPanel
+                    instrument={selectedInstrument}
+                    onOpenFullFundamental={handleJumpToFundamental}
+                  />
+                )}
+                {chartSideTab === 'sentiment' && (
+                  <MarketSentimentPanel
+                    instrument={selectedInstrument}
+                    news={INITIAL_MARKET_NEWS}
+                    onJumpToAsset={handleJumpToChart}
+                  />
+                )}
+                {chartSideTab === 'multiasset' && (
+                  <MultiAssetListPanel
+                    instruments={instruments}
+                    selectedSymbol={selectedSymbol}
+                    onSelectSymbol={setSelectedSymbol}
+                    recentTicks={recentTicks}
+                  />
+                )}
+                {chartSideTab === 'chat' && (
+                  <TradingChatPanel
+                    currentInstrument={selectedInstrument}
+                    candles={candles}
+                    onJumpToAsset={handleJumpToChart}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
     </div>
   );
 };

@@ -86,23 +86,23 @@ export const ChartTradingWidget: React.FC<{
   return (
     <div className="bg-[#111722] border border-slate-800 rounded-lg shadow-xl overflow-hidden font-mono text-xs">
       {/* Wallet / Account Bar */}
-      <div className="p-3 bg-[#0B0F17] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px]">
-        <div className="flex items-center gap-4">
+      <div className="p-2.5 sm:p-3 bg-[#0B0F17] border-b border-slate-800 grid grid-cols-2 sm:flex sm:items-center justify-between gap-2 text-[10px] sm:text-[11px]">
+        <div className="flex items-center gap-3 col-span-2 sm:col-span-1 flex-wrap">
           <div>
-            <span className="text-slate-500">Saldo Akun:</span>
-            <span className="text-white font-bold ml-1.5">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="text-slate-500">Saldo:</span>
+            <span className="text-white font-bold ml-1">${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           <div>
             <span className="text-slate-500">Ekuitas:</span>
-            <span className="text-white font-bold ml-1.5">${equity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="text-white font-bold ml-1">${equity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           <div>
             <span className="text-slate-500">Margin Bebas:</span>
-            <span className="text-emerald-400 font-bold ml-1.5">${freeMargin.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span className="text-emerald-400 font-bold ml-1">${freeMargin.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1 justify-between sm:justify-end">
           <span className="text-slate-400">Floating PnL:</span>
           <span className={`px-2 py-0.5 rounded font-bold ${totalUnrealizedPnL >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
             {totalUnrealizedPnL >= 0 ? `+$${totalUnrealizedPnL.toFixed(2)}` : `-$${Math.abs(totalUnrealizedPnL).toFixed(2)}`}

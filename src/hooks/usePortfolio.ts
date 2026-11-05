@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFirebase } from './useFirebase';
 import { db } from '../services/firebase';
 import { 
@@ -186,24 +186,20 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
     return () => unsubscribe();
   }, [user]);
 
-  // Update position live PnL based on market prices
-  const [syncedPositions, setSyncedPositions] = useState<Position[]>([]);
+  // Derive position live PnL based on market prices
+  const syncedPositions = useMemo(() => {
+    if (positions.length === 0) return [];
 
-  useEffect(() => {
-    if (positions.length === 0) {
-      setSyncedPositions([]);
-      return;
-    }
+    return positions.map((p) => {
+      const match =
+        allInstruments.find((i) => i.symbol === p.symbol) ||
+        (currentInstrument && currentInstrument.symbol === p.symbol ? currentInstrument : null);
 
-    const updated = positions.map(p => {
-      const match = allInstruments.find(i => i.symbol === p.symbol) || 
-                   (currentInstrument && currentInstrument.symbol === p.symbol ? currentInstrument : null);
-      
       if (!match) return p;
 
       const currentPrice = match.price;
       const priceDiff = p.type === 'BUY' ? currentPrice - p.openPrice : p.openPrice - currentPrice;
-      
+
       // Calculate multiplier based on asset class
       let multiplier = 1;
       if (p.symbol.includes('XAU')) multiplier = 100;
@@ -218,12 +214,10 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
         ...p,
         currentPrice,
         pnl,
-        pnlPercent
+        pnlPercent,
       };
     });
-
-    setSyncedPositions(updated);
-  }, [positions, currentInstrument?.price, allInstruments]);
+  }, [positions, currentInstrument, allInstruments]);
 
   const openPosition = useCallback(async (
     symbol: string, 

@@ -39,7 +39,7 @@ export const SupplyDemandOverlayPanel: React.FC<SupplyDemandOverlayPanelProps> =
   instrument,
   candles,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth >= 768);
   const [copiedZoneId, setCopiedZoneId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
 

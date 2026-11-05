@@ -304,6 +304,19 @@ function resolveTradingViewSymbol(symbol: string): string {
     BBRI: 'IDX:BBRI',
     BMRI: 'IDX:BMRI',
     TLKM: 'IDX:TLKM',
+    ASII: 'IDX:ASII',
+    GOTO: 'IDX:GOTO',
+    ICBP: 'IDX:ICBP',
+    UNVR: 'IDX:UNVR',
+    BREN: 'IDX:BREN',
+    AMMN: 'IDX:AMMN',
+    ANTM: 'IDX:ANTM',
+    INDF: 'IDX:INDF',
+    CPIN: 'IDX:CPIN',
+    PGAS: 'IDX:PGAS',
+    MDKA: 'IDX:MDKA',
+    ADRO: 'IDX:ADRO',
+    TPIA: 'IDX:TPIA',
     // Commodities
     XAUUSD: 'OANDA:XAUUSD',
     XAGUSD: 'OANDA:XAGUSD',
@@ -315,12 +328,20 @@ function resolveTradingViewSymbol(symbol: string): string {
 
   if (map[symUpper]) return map[symUpper];
 
+  if (symUpper.startsWith('IDX:')) return symUpper;
+
   if (symUpper.endsWith('USDT') || symUpper.endsWith('BUSD')) {
     return `BINANCE:${symUpper}`;
   }
 
   if (symUpper.length === 6 && (symUpper.startsWith('EUR') || symUpper.startsWith('GBP') || symUpper.startsWith('AUD') || symUpper.startsWith('USD') || symUpper.startsWith('CAD') || symUpper.startsWith('NZD'))) {
     return `FX:${symUpper}`;
+  }
+
+  // 4-letter uppercase tickers default to IDX stock if not in US stocks list
+  const knownUsStocks = new Set(['NVDA', 'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'META', 'NFLX', 'AMD', 'INTC']);
+  if (symUpper.length === 4 && /^[A-Z]{4}$/.test(symUpper) && !knownUsStocks.has(symUpper)) {
+    return `IDX:${symUpper}`;
   }
 
   return `OANDA:${symUpper}`;

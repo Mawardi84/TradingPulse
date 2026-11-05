@@ -34,13 +34,13 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
           {/* Left: Timeframe Selector */}
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono text-white font-bold hidden sm:inline">TF:</span>
-            <div className="flex items-center bg-black p-0 border border-white">
+            <div className="flex items-center bg-black p-0 border border-white overflow-x-auto scrollbar-none">
               {timeframes.map((tf) => (
                 <button
                   key={tf}
                   type="button"
                   onClick={() => onTimeframeChange(tf)}
-                  className={`px-2 py-0.5 text-[10px] font-mono font-bold transition-colors whitespace-nowrap ${
+                  className={`px-2 py-0.5 text-[10px] font-mono font-bold transition-colors whitespace-nowrap cursor-pointer ${
                     timeframe === tf
                       ? 'bg-white text-black'
                       : 'text-white hover:bg-zinc-800'
@@ -52,8 +52,8 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] font-mono">
-            <span className="w-2 h-2 bg-yellow-400 animate-pulse" />
+          <div className="flex items-center gap-1.5 text-[10px] font-mono shrink-0">
+            <span className="w-2 h-2 bg-yellow-400 animate-pulse rounded-full" />
             <span className="text-yellow-400 font-bold">{instrument.displaySymbol}</span>
           </div>
         </div>
@@ -70,7 +70,7 @@ export const TradingChartCanvas: React.FC<TradingChartCanvasProps> = ({
         <TradingViewWidget 
           instrument={instrument} 
           timeframe={timeframe} 
-          height={600} 
+          height={typeof window !== 'undefined' && window.innerWidth < 768 ? 440 : 580} 
           indicators={activeIndicators}
         />
       </div>

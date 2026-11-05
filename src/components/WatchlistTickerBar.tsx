@@ -70,9 +70,9 @@ export const WatchlistTickerBar: React.FC<{
   const now = Date.now();
 
   return (
-    <div className="bg-[#111722] border border-slate-800 rounded-lg p-3 space-y-2.5 font-mono">
+    <div className="bg-[#111722] border border-slate-800 rounded-none sm:rounded-lg p-2 sm:p-3 space-y-2 font-mono">
       {/* Category Pills, Live Stream Status & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {categories.map((cat) => (
             <button

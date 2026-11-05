@@ -143,9 +143,13 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     const syncQuotes = async () => {
       if (isPausedRef.current) return;
 
-      // Ensure XAUUSD (COMEX Gold) is always synced along with selected symbol and key commodities
+      // Ensure XAUUSD (COMEX Gold), key commodities, and all IDX Stocks are always synced along with selected symbol
+      const idxStockSymbols = instrumentsRef.current
+        .filter((i) => i.category === 'idx_stocks')
+        .map((i) => i.symbol);
+
       const symbolsToSync = Array.from(
-        new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER', selectedSymbol])
+        new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER', ...idxStockSymbols, selectedSymbol])
       );
 
       for (const sym of symbolsToSync) {
@@ -159,23 +163,23 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
 
           const now = Date.now();
 
+          setRecentTicks((rPrev) => {
+            const prevPrice = instrumentsRef.current.find((i) => i.symbol === sym)?.price || 0;
+            if (prevPrice !== tvQuote.price) {
+              return {
+                ...rPrev,
+                [sym]: {
+                  direction: tvQuote.price >= prevPrice ? 'up' : 'down',
+                  timestamp: now,
+                },
+              };
+            }
+            return rPrev;
+          });
+
           setInstruments((prevList) =>
             prevList.map((item) => {
               if (item.symbol !== sym) return item;
-
-              const prevPrice = item.price;
-              const tickDir: 'up' | 'down' = tvQuote.price >= prevPrice ? 'up' : 'down';
-
-              if (prevPrice !== tvQuote.price) {
-                setRecentTicks((rPrev) => ({
-                  ...rPrev,
-                  [sym]: {
-                    direction: tickDir,
-                    timestamp: now,
-                  },
-                }));
-              }
-
               return {
                 ...item,
                 price: tvQuote.price,

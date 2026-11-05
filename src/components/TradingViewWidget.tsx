@@ -31,6 +31,23 @@ export const getTradingViewSymbol = (symbol: string, category: string): string =
     USOIL: 'TVC:USOIL',
     UKOIL: 'TVC:UKOIL',
     COPPER: 'COMEX:HG1!',
+    BBCA: 'IDX:BBCA',
+    BBRI: 'IDX:BBRI',
+    BMRI: 'IDX:BMRI',
+    TLKM: 'IDX:TLKM',
+    ASII: 'IDX:ASII',
+    GOTO: 'IDX:GOTO',
+    ICBP: 'IDX:ICBP',
+    UNVR: 'IDX:UNVR',
+    BREN: 'IDX:BREN',
+    AMMN: 'IDX:AMMN',
+    ANTM: 'IDX:ANTM',
+    INDF: 'IDX:INDF',
+    CPIN: 'IDX:CPIN',
+    PGAS: 'IDX:PGAS',
+    MDKA: 'IDX:MDKA',
+    ADRO: 'IDX:ADRO',
+    TPIA: 'IDX:TPIA',
   };
 
   if (map[symUpper]) return map[symUpper];

@@ -33,7 +33,7 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
   onExecuteTrade,
   onOpenBotManager,
 }) => {
-  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const [copied, setCopied] = useState<boolean>(false);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
@@ -273,29 +273,38 @@ Model: ${strategyLabel} [Volatilitas ATR: $${atr.toFixed(dec)}]`;
   return (
     <div className="bg-black border-y border-white font-mono text-xs">
       {/* Header bar of the overlay */}
-      <div className="px-3 py-1.5 bg-zinc-950 flex items-center justify-between border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-yellow-400" />
-          <span className="text-yellow-400 font-bold uppercase tracking-wide text-[11px]">
-            AI Trade Signal Overlay [{instrument.displaySymbol}]
+      <div className="px-2.5 py-1.5 bg-zinc-950 flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-800">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Sparkles className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+          <span className="text-yellow-400 font-bold uppercase tracking-wide text-[10px] sm:text-[11px]">
+            AI Signal [{instrument.displaySymbol}]
           </span>
-          <span className="px-1.5 py-0.2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded text-[10px]">
+          <span
+            className={`px-1.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold uppercase border ${
+              signalType === 'BUY'
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-500'
+                : 'bg-rose-950 text-rose-300 border-rose-500'
+            }`}
+          >
+            {signalType} @ ${entryPrice.toFixed(dec)} ({confluenceScore}%)
+          </span>
+          <span className="px-1.5 py-0.5 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded text-[9px] sm:text-[10px] hidden md:inline">
             {strategyLabel}
           </span>
-          <span className="px-1.5 py-0.2 bg-zinc-900 text-yellow-300 border border-yellow-500/40 rounded text-[10px] hidden md:inline">
+          <span className="px-1.5 py-0.5 bg-zinc-900 text-yellow-300 border border-yellow-500/40 rounded text-[9px] sm:text-[10px] hidden sm:inline">
             R:R 1:{rrRatio}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
           <button
             type="button"
             onClick={handleRequestGeminiAiAnalysis}
-            className="px-2 py-0.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-[10px] uppercase border border-black flex items-center gap-1 cursor-pointer transition-colors"
+            className="px-2 py-0.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-[9px] sm:text-[10px] uppercase border border-black flex items-center gap-1 cursor-pointer transition-colors"
             title="Analisa ulang dengan Google Gemini AI Server"
           >
             <Zap className="w-3 h-3 fill-black stroke-none" />
-            <span>Analisa Gemini AI</span>
+            <span>Gemini AI</span>
           </button>
 
           <span className="text-emerald-400 text-[10px] hidden sm:flex items-center gap-1 font-bold border-l border-zinc-800 pl-2">

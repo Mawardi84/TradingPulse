@@ -396,10 +396,10 @@ export class RealTimeMarketFeed {
     }
 
     // Only generate synthetic ticks for instruments that DO NOT have a real live data source.
-    // Instruments with live TradingView quotes (XAUUSD, XAGUSD, USOIL, COPPER) or Binance WS are excluded.
+    // Instruments with live TradingView quotes (XAUUSD, XAGUSD, USOIL, COPPER, IDX stocks) or Binance WS are excluded.
     const liveScrapedSymbols = new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER']);
     const tickCandidates = instruments.filter(
-      (i) => !liveScrapedSymbols.has(i.symbol) && (i.category !== 'crypto' || !i.binanceSymbol)
+      (i) => !liveScrapedSymbols.has(i.symbol) && i.category !== 'idx_stocks' && (i.category !== 'crypto' || !i.binanceSymbol)
     );
 
     this.interbankIntervalId = setInterval(() => {
