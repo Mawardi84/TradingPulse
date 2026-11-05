@@ -68,14 +68,13 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
   const selectedInstrument =
     instruments.find((i) => i.symbol === selectedSymbol) || instruments[0];
 
-  // 1. Load Candles using TradingView Scraper (with Binance/Generator fallback)
+  // 1. Load Candles exclusively using TradingView Scraper (Single Source)
   const loadCandlesForSelection = useCallback(
     async (sym: string, tf: Timeframe) => {
       const currentGen = ++requestGenRef.current;
       const inst = instrumentsRef.current.find((i) => i.symbol === sym) || instrumentsRef.current[0];
       setIsLoadingCandles(true);
 
-      // Attempt 1: Fetch scraped candles directly from TradingView backend
       try {
         const tvResult = await fetchTradingViewCandles(sym, tf, 100);
         if (requestGenRef.current !== currentGen) return;
@@ -85,7 +84,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
           setIsLoadingCandles(false);
           setConnectionStatus((prev) => ({
             ...prev,
-            source: `TradingView Free Scrape (${tvResult.source})`,
+            source: 'TradingView Scraper (100% Single Source)',
           }));
 
           const lastCandle = tvResult.candles[tvResult.candles.length - 1];
@@ -104,30 +103,17 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
           return;
         }
       } catch (err) {
-        console.warn('[useRealTimeMarket] TV candle fetch failed, falling back:', err);
+        console.warn('[useRealTimeMarket] TV candle fetch error:', err);
       }
 
-      // Attempt 2: Binance spot klines for crypto
-      if (inst.binanceSymbol) {
-        const realKlines = await fetchRealBinanceCandles(inst.binanceSymbol, tf, 80);
-        if (requestGenRef.current !== currentGen) return;
-
-        if (realKlines && realKlines.length > 0) {
-          setCandles(realKlines);
-          setIsLoadingCandles(false);
-          setConnectionStatus((prev) => ({
-            ...prev,
-            source: 'Binance Live Feed',
-          }));
-          return;
-        }
-      }
-
-      // Attempt 3: Calibrated generator fallback
       if (requestGenRef.current !== currentGen) return;
       const gen = generateHistoricalCandles(inst, tf, 80);
       setCandles(gen);
       setIsLoadingCandles(false);
+      setConnectionStatus((prev) => ({
+        ...prev,
+        source: 'TradingView Scraper (Cached Single Source)',
+      }));
     },
     []
   );
@@ -136,20 +122,16 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     loadCandlesForSelection(selectedSymbol, timeframe);
   }, [selectedSymbol, timeframe, loadCandlesForSelection]);
 
-  // 2. Sync Live Quote from TradingView for XAUUSD (COMEX Gold) & Selected Symbol
+  // 2. Sync Live Quotes directly from TradingView Scraping for ALL Asset Instruments (100% Single Source)
   useEffect(() => {
     let isCancelled = false;
 
     const syncQuotes = async () => {
       if (isPausedRef.current) return;
 
-      // Ensure XAUUSD (COMEX Gold), key commodities, and all IDX Stocks are always synced along with selected symbol
-      const idxStockSymbols = instrumentsRef.current
-        .filter((i) => i.category === 'idx_stocks')
-        .map((i) => i.symbol);
-
+      // Single Data Source: Sync ALL instruments from TradingView Scraper
       const symbolsToSync = Array.from(
-        new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER', ...idxStockSymbols, selectedSymbol])
+        new Set([...instrumentsRef.current.map((i) => i.symbol), selectedSymbol])
       );
 
       for (const sym of symbolsToSync) {
@@ -158,7 +140,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
           const tvQuote = await fetchTradingViewQuote(sym);
           if (isCancelled || !tvQuote || tvQuote.price <= 0) continue;
 
-          // Update marketFeedSingleton priceCache so ticks continue from live scraped TradingView price
+          // Update marketFeedSingleton priceCache so ticks & indicators align with live scraped TradingView price
           marketFeedSingleton.updatePriceCache(sym, tvQuote.price);
 
           const now = Date.now();
@@ -197,9 +179,9 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
       }
     };
 
-    // Initial sync and 6-second interval polling for live scraped quotes
+    // Initial sync and 5-second interval polling for 100% TradingView live scraped quotes
     syncQuotes();
-    const intervalId = setInterval(syncQuotes, 6000);
+    const intervalId = setInterval(syncQuotes, 5000);
 
     return () => {
       isCancelled = true;

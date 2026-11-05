@@ -47,9 +47,14 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
 }) => {
   const isGold = currentInstrument.symbol.toUpperCase().includes('XAU') || currentInstrument.symbol.toUpperCase().includes('GOLD');
 
-  // Auto-detect M5 Resistance (High) & Support (Low) from candles or default to live price
-  const highestCandleHigh = candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : currentInstrument.price + 1.25;
-  const lowestCandleLow = candles.length > 0 ? Math.min(...candles.map((c) => c.low)) : currentInstrument.price - 1.25;
+  // Auto-detect M5 Resistance (High) & Support (Low) from recent candles or default relative to live spot price
+  const recentCandles = candles.slice(-5);
+  const highestCandleHigh = recentCandles.length > 0
+    ? Math.max(...recentCandles.map((c) => c.high))
+    : currentInstrument.price + 0.85;
+  const lowestCandleLow = recentCandles.length > 0
+    ? Math.min(...recentCandles.map((c) => c.low))
+    : currentInstrument.price - 0.85;
 
   const [resistenM5, setResistenM5] = useState<number>(Number(highestCandleHigh.toFixed(2)));
   const [supportM5, setSupportM5] = useState<number>(Number(lowestCandleLow.toFixed(2)));
@@ -61,27 +66,25 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
   const [isScalpMode, setIsScalpMode] = useState<boolean>(false);
   const [volMultiplier, setVolMultiplier] = useState<number>(1.0);
 
-  // Sync state if current price shifts dramatically
+  // Sync state if current price shifts or new candles arrive
   useEffect(() => {
-    if (candles.length > 0) {
-      const h = Math.max(...candles.map((c) => c.high));
-      const l = Math.min(...candles.map((c) => c.low));
+    const recent = candles.slice(-5);
+    if (recent.length > 0) {
+      const h = Math.max(...recent.map((c) => c.high));
+      const l = Math.min(...recent.map((c) => c.low));
       setResistenM5(Number(h.toFixed(2)));
       setSupportM5(Number(l.toFixed(2)));
     } else {
       setResistenM5(Number((currentInstrument.price + 0.85).toFixed(2)));
       setSupportM5(Number((currentInstrument.price - 0.85).toFixed(2)));
     }
-  }, [currentInstrument.symbol, candles]);
+  }, [currentInstrument.symbol, candles, currentInstrument.price]);
 
-  // Formulas from user uploaded cheat sheet images:
+  // Formulas for XAUUSD (COMEX Gold):
   // BUY LIMIT:
-  // Sideway (Scalping TP 50-70 Pips): Harga Resisten M5 - [0.10, 0.13, 0.15, 0.17]
-  // Trend Kuat (dikurangi 0.17 s/d 0.31): Harga Resisten M5 - [0.17, 0.18, 0.20, 0.29, 0.30, 0.31]
-  //
+  // Base anchor = Support M5 / Live Price - offset (placed below market)
   // SELL LIMIT:
-  // Sideway (Scalping TP 40-70 Pips): Harga Support M5 + [0.10, 0.13, 0.15, 0.17]
-  // Trend Kuat (ditambah 0.17 s/d 0.31): Harga Support M5 + [0.17, 0.18, 0.20, 0.29, 0.30, 0.31]
+  // Base anchor = Resisten M5 / Live Price + offset (placed above market)
 
   const buySidewayOffsets = [0.10, 0.13, 0.15, 0.17];
   const buyTrendKuatOffsets = [0.17, 0.18, 0.20, 0.29, 0.30, 0.31];
@@ -94,8 +97,11 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
     const results: EntryCalculationResult[] = [];
 
     if (isScalpMode) {
-      // Specialized Scalp Logic (M1/M5 Sniper)
-      const basePrice = entryType === 'BUY_LIMIT' ? resistenM5 : supportM5;
+      // Specialized Scalp Logic (M1/M5 Sniper relative to live spot)
+      const basePrice = entryType === 'BUY_LIMIT' 
+        ? Math.min(supportM5, currentInstrument.price) 
+        : Math.max(resistenM5, currentInstrument.price);
+
       scalpOffsets.map(o => o * volMultiplier).forEach(offset => {
         const entryPrice = entryType === 'BUY_LIMIT' ? basePrice - offset : basePrice + offset;
         results.push({
@@ -116,7 +122,8 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
     }
 
     if (entryType === 'BUY_LIMIT') {
-      const basePrice = resistenM5;
+      // Buy Limit is placed below support/spot price
+      const basePrice = Math.min(supportM5, currentInstrument.price);
       // Sideway
       if (activeRegime === 'ALL' || activeRegime === 'SIDEWAY') {
         buySidewayOffsets.forEach((offset) => {
@@ -169,8 +176,8 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
         });
       }
     } else {
-      // SELL LIMIT
-      const basePrice = supportM5;
+      // SELL LIMIT is placed above resistance/spot price
+      const basePrice = Math.max(resistenM5, currentInstrument.price);
       // Sideway
       if (activeRegime === 'ALL' || activeRegime === 'SIDEWAY') {
         sellSidewayOffsets.forEach((offset) => {

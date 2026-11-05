@@ -296,111 +296,25 @@ export class RealTimeMarketFeed {
       console.warn('[MarketFeed] Initial sync error:', err);
     }
 
-    // 2. Start Binance WebSocket for Live Crypto and Metals (Gold PAXGUSDT)
-    this.connectBinanceWS(instruments);
-
-    // 3. Start Live Interbank Tick Generator for remaining non-Binance instruments
-    this.startInterbankTicks(instruments);
+    // Single Data Source Policy: All instruments use TradingView Scraping.
+    // Disable Binance WS and synthetic interbank generators so no alternate feed corrupts TradingView quotes.
+    // this.connectBinanceWS(instruments);
+    // this.startInterbankTicks(instruments);
   }
 
-  private connectBinanceWS(instruments: Instrument[]) {
-    const streamSymbols = instruments
-      .filter((i) => !!i.binanceSymbol)
-      .map((i) => i.binanceSymbol!.toLowerCase());
-
-    if (streamSymbols.length === 0) return;
-
-    try {
-      if (this.ws) {
-        try {
-          this.ws.close();
-        } catch {}
-      }
-
-      // Connect to the all-market miniTicker multi-stream
-      const streams = streamSymbols.map((s) => `${s}@miniTicker`).join('/');
-      const wsUrl = `wss://stream.binance.com:9443/ws/${streams}`;
-
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        // Connected to Binance real-time WS
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          // format of miniTicker:
-          // { e: '24hrMiniTicker', s: 'PAXGUSDT', c: '4015.20', o: '4015.90', h: '4040.00', l: '4003.50', v: '...', q: '...' }
-          if (data && data.s && data.c) {
-            const rawSym = data.s;
-            const sym = this.binanceSymbolMap.get(rawSym.toUpperCase()) || rawSym;
-            const newPrice = parseFloat(data.c);
-            const open = parseFloat(data.o);
-            const high = parseFloat(data.h);
-            const low = parseFloat(data.l);
-            const quoteVol = parseFloat(data.q || data.v || '0');
-
-            const prevPrice = this.priceCache.get(sym) ?? newPrice;
-            const tickDir: 'up' | 'down' = newPrice >= prevPrice ? 'up' : 'down';
-            this.priceCache.set(sym, newPrice);
-
-            const change = newPrice - open;
-            const changePercent = open !== 0 ? (change / open) * 100 : 0;
-            const now = Date.now();
-            const eventTime = typeof data.E === 'number' ? data.E : 0;
-            const latencyMs = eventTime > 0 && now >= eventTime ? Math.max(1, now - eventTime) : undefined;
-
-            this.notify({
-              symbol: sym,
-              price: newPrice,
-              change24h: change,
-              changePercent24h: changePercent,
-              high24h: high,
-              low24h: low,
-              volume24h: quoteVol,
-              tickDirection: tickDir,
-              timestamp: now,
-              latencyMs,
-            });
-          }
-        } catch (e) {
-          // Parse err
-        }
-      };
-
-      this.ws.onerror = (e) => {
-        console.warn('[MarketFeed] WebSocket error, will reconnect...', e);
-      };
-
-      this.ws.onclose = () => {
-        if (this.isRunning) {
-          clearTimeout(this.reconnectTimer);
-          this.reconnectTimer = setTimeout(() => {
-            this.connectBinanceWS(instruments);
-          }, 4000);
-        }
-      };
-    } catch (err) {
-      console.warn('[MarketFeed] WebSocket init error:', err);
-    }
+  private connectBinanceWS(_instruments: Instrument[]) {
+    return; // Disabled for 100% TradingView single data source policy
   }
 
   /**
-   * Generates realistic interbank liquidity ticks for active non-Binance Forex pairs, Commodities & Stocks
-   * to simulate real live order flow, bid/ask fluctuations, and candle heartbeat.
+   * Single Data Source Policy: All asset quotes are scraped from TradingView.
+   * Synthetic random walk ticks are completely disabled.
    */
-  private startInterbankTicks(instruments: Instrument[]) {
+  private startInterbankTicks(_instruments: Instrument[]) {
     if (this.interbankIntervalId) {
       clearInterval(this.interbankIntervalId);
     }
-
-    // Only generate synthetic ticks for instruments that DO NOT have a real live data source.
-    // Instruments with live TradingView quotes (XAUUSD, XAGUSD, USOIL, COPPER, IDX stocks) or Binance WS are excluded.
-    const liveScrapedSymbols = new Set(['XAUUSD', 'XAGUSD', 'USOIL', 'COPPER']);
-    const tickCandidates = instruments.filter(
-      (i) => !liveScrapedSymbols.has(i.symbol) && i.category !== 'idx_stocks' && (i.category !== 'crypto' || !i.binanceSymbol)
-    );
+    const tickCandidates: Instrument[] = [];
 
     this.interbankIntervalId = setInterval(() => {
       if (!this.isRunning || tickCandidates.length === 0) return;
