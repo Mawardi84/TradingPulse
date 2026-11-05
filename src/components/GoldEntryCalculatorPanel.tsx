@@ -59,6 +59,7 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
   const [showImageModal, setShowImageModal] = useState<string | null>(null);
   const [selectedResult, setSelectedResult] = useState<EntryCalculationResult | null>(null);
   const [isScalpMode, setIsScalpMode] = useState<boolean>(false);
+  const [volMultiplier, setVolMultiplier] = useState<number>(1.0);
 
   // Sync state if current price shifts dramatically
   useEffect(() => {
@@ -95,13 +96,13 @@ export const GoldEntryCalculatorPanel: React.FC<GoldEntryCalculatorPanelProps> =
     if (isScalpMode) {
       // Specialized Scalp Logic (M1/M5 Sniper)
       const basePrice = entryType === 'BUY_LIMIT' ? resistenM5 : supportM5;
-      scalpOffsets.forEach(offset => {
+      scalpOffsets.map(o => o * volMultiplier).forEach(offset => {
         const entryPrice = entryType === 'BUY_LIMIT' ? basePrice - offset : basePrice + offset;
         results.push({
-          label: `Scalp Sniper (Offset ${offset})`,
+          label: `Scalp Sniper (Offset ${offset.toFixed(2)})`,
           regime: 'SIDEWAY',
           offset,
-          formulaStr: `${basePrice.toFixed(2)} ${entryType === 'BUY_LIMIT' ? '-' : '+'} ${offset}`,
+          formulaStr: `${basePrice.toFixed(2)} ${entryType === 'BUY_LIMIT' ? '-' : '+'} ${offset.toFixed(2)}`,
           calculatedPrice: Number(entryPrice.toFixed(2)),
           tpPipsMin: 20,
           tpPipsMax: 40,
@@ -280,7 +281,22 @@ Formula: ${res.formulaStr}
         </div>
 
         {/* Action Toggle Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {isScalpMode && (
+            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg">
+              <span className="text-[10px] text-zinc-400 uppercase font-bold">Vol. Multiplier:</span>
+              <input 
+                type="number"
+                step="0.1"
+                defaultValue="1.0"
+                className="w-16 bg-black border border-zinc-700 text-yellow-400 text-xs font-bold text-center rounded p-1"
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setVolMultiplier(isNaN(val) ? 1.0 : val);
+                }}
+              />
+            </div>
+          )}
           <button 
             onClick={() => setIsScalpMode(!isScalpMode)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${isScalpMode ? 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-500/20 shadow-lg' : 'bg-zinc-900 text-zinc-400 border-zinc-800'}`}

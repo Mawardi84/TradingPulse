@@ -152,6 +152,7 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
         if (isCancelled) break;
         try {
           const tvQuote = await fetchTradingViewQuote(sym);
+          console.log(`[DEBUG] Quote for ${sym}:`, tvQuote);
           if (isCancelled || !tvQuote || tvQuote.price <= 0) continue;
 
           // Update marketFeedSingleton priceCache so ticks continue from live scraped TradingView price

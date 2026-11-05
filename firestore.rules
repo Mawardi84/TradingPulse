@@ -15,41 +15,33 @@ service cloud.firestore {
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
     // --- VALIDATION BLUEPRINTS ---
+    // --- VALIDATION BLUEPRINTS ---
     function isValidProfile(data) {
-      return data.keys().hasAll(['email', 'updatedAt']) &&
-             data.email is string && data.email.size() <= 100 &&
+      return (data.email == null || data.email is string) &&
              (data.balance == null || data.balance is number) &&
              (data.displayName == null || data.displayName is string) &&
              (data.photoURL == null || data.photoURL is string);
     }
 
-    function isValidWatchlist(data, userId) {
-      return data.keys().hasAll(['userId', 'name', 'symbols', 'updatedAt']) &&
-             data.userId == userId &&
-             data.name is string &&
-             data.symbols is list;
+    function isValidWatchlist(data) {
+      return (data.name == null || data.name is string) &&
+             (data.symbols == null || data.symbols is list);
     }
 
-    function isValidPosition(data, userId) {
-      return data.keys().hasAll(['userId', 'symbol', 'type', 'volume', 'entryPrice', 'status', 'updatedAt']) &&
-             data.userId == userId &&
-             data.symbol is string &&
-             data.type in ['BUY', 'SELL'] &&
-             data.status in ['OPEN', 'CLOSED'];
+    function isValidPosition(data) {
+      return (data.symbol == null || data.symbol is string) &&
+             (data.type == null || data.type in ['BUY', 'SELL']) &&
+             (data.status == null || data.status in ['OPEN', 'CLOSED']);
     }
 
-    function isValidSettings(data, userId) {
-      return data.keys().hasAll(['userId', 'updatedAt']) &&
-             data.userId == userId &&
-             (data.layoutConfig == null || data.layoutConfig is string) &&
+    function isValidSettings(data) {
+      return (data.layoutConfig == null || data.layoutConfig is string) &&
              (data.theme == null || data.theme is string);
     }
 
-    function isValidScript(data, userId) {
-      return data.keys().hasAll(['userId', 'name', 'code', 'language', 'updatedAt']) &&
-             data.userId == userId &&
-             data.name is string &&
-             data.code is string;
+    function isValidScript(data) {
+      return (data.name == null || data.name is string) &&
+             (data.code == null || data.code is string);
     }
 
     // --- COLLECTION RULES ---
@@ -57,7 +49,7 @@ service cloud.firestore {
     // 1. User Profiles
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidProfile(incoming()) &&
+      allow create: if isOwner(userId) && isValidProfile(incoming()) && incoming().email != null &&
                       incoming().createdAt == request.time && incoming().updatedAt == request.time;
       allow update: if isOwner(userId) && isValidProfile(incoming()) &&
                       incoming().updatedAt == request.time;
@@ -65,9 +57,9 @@ service cloud.firestore {
       // 2. Watchlists (Sub-collection)
       match /watchlists/{watchlistId} {
         allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidWatchlist(incoming(), userId) &&
+        allow create: if isOwner(userId) && isValidWatchlist(incoming()) && incoming().userId == userId && incoming().name != null &&
                         incoming().createdAt == request.time && incoming().updatedAt == request.time;
-        allow update: if isOwner(userId) && isValidWatchlist(incoming(), userId) &&
+        allow update: if isOwner(userId) && isValidWatchlist(incoming()) &&
                         incoming().updatedAt == request.time;
         allow delete: if isOwner(userId);
       }
@@ -75,9 +67,9 @@ service cloud.firestore {
       // 3. Active Positions (Sub-collection)
       match /positions/{positionId} {
         allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidPosition(incoming(), userId) &&
+        allow create: if isOwner(userId) && isValidPosition(incoming()) && incoming().userId == userId && incoming().symbol != null &&
                         incoming().createdAt == request.time && incoming().updatedAt == request.time;
-        allow update: if isOwner(userId) && isValidPosition(incoming(), userId) &&
+        allow update: if isOwner(userId) && isValidPosition(incoming()) &&
                         incoming().updatedAt == request.time;
         allow delete: if isOwner(userId);
       }
@@ -85,7 +77,7 @@ service cloud.firestore {
       // 4. Trade History (Sub-collection)
       match /history/{tradeId} {
         allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidPosition(incoming(), userId) &&
+        allow create: if isOwner(userId) && isValidPosition(incoming()) && incoming().userId == userId && incoming().symbol != null &&
                         incoming().createdAt == request.time && incoming().updatedAt == request.time;
         allow update: if false; // History is immutable
         allow delete: if isOwner(userId);
@@ -94,18 +86,18 @@ service cloud.firestore {
       // 5. User Settings
       match /settings/terminal {
         allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidSettings(incoming(), userId) &&
+        allow create: if isOwner(userId) && isValidSettings(incoming()) && incoming().userId == userId &&
                         incoming().createdAt == request.time && incoming().updatedAt == request.time;
-        allow update: if isOwner(userId) && isValidSettings(incoming(), userId) &&
+        allow update: if isOwner(userId) && isValidSettings(incoming()) &&
                         incoming().updatedAt == request.time;
       }
 
       // 6. Quant Scripts (Sub-collection)
       match /scripts/{scriptId} {
         allow list, get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidScript(incoming(), userId) &&
+        allow create: if isOwner(userId) && isValidScript(incoming()) && incoming().userId == userId && incoming().name != null &&
                         incoming().createdAt == request.time && incoming().updatedAt == request.time;
-        allow update: if isOwner(userId) && isValidScript(incoming(), userId) &&
+        allow update: if isOwner(userId) && isValidScript(incoming()) &&
                         incoming().updatedAt == request.time;
         allow delete: if isOwner(userId);
       }

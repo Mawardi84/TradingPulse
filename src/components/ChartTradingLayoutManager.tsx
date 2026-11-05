@@ -310,7 +310,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
         {/* Left Column: Chart Area */}
         <div
           style={{ gridColumn: `span ${layout.chartColumnSpan} / span ${layout.chartColumnSpan}` }}
-          className="col-span-12 lg:col-span-8 flex flex-col h-full overflow-hidden border-r border-white bg-black"
+          className="col-span-12 xl:col-span-8 flex flex-col h-full overflow-hidden border-b xl:border-b-0 xl:border-r border-zinc-800 bg-black"
         >
           {/* Watchlist Ticker Bar */}
           <div className="border-b border-white shrink-0">
@@ -393,7 +393,7 @@ export const ChartTradingLayoutManager: React.FC<ChartTradingLayoutManagerProps>
         {/* Right Column: Analysis Panels */}
         <div
           style={{ gridColumn: `span ${12 - layout.chartColumnSpan} / span ${12 - layout.chartColumnSpan}` }}
-          className="col-span-12 lg:col-span-4 bg-black border-l border-white flex flex-col h-full overflow-hidden"
+          className="col-span-12 xl:col-span-4 bg-black border-l-0 xl:border-l border-zinc-800 flex flex-col h-full overflow-hidden"
         >
           {/* Analysis Tab Switcher */}
           <div className="flex items-center gap-0 bg-black border-b border-white p-0 overflow-x-auto text-[10px] font-bold shrink-0">

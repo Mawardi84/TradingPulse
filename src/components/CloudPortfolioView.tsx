@@ -1,6 +1,7 @@
 import React from 'react';
 import { Instrument } from '../types/market';
 import { usePortfolio } from '../hooks/usePortfolio';
+import { PropFirmDrawdownMonitor } from './PropFirmDrawdownMonitor';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -165,6 +166,8 @@ export const CloudPortfolioView: React.FC<{
 
         {/* Trade History Sidebar */}
         <div className="lg:col-span-4 space-y-6">
+          <PropFirmDrawdownMonitor />
+          
           <div className="bg-[#0B0F17] border border-zinc-800 shadow-2xl flex flex-col">
             <div className="p-3 border-b border-zinc-800 bg-black flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -196,33 +199,6 @@ export const CloudPortfolioView: React.FC<{
                   Belum ada riwayat.
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Risk Management Info */}
-          <div className="bg-zinc-950 border border-zinc-800 p-4 space-y-3">
-            <div className="flex items-center gap-2 text-yellow-400">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Risk Management Hub</span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-[11px]">
-                <span className="text-zinc-500 uppercase">Margin Used:</span>
-                <span className="text-white font-bold">${stats.marginUsed.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-zinc-500 uppercase">Free Margin:</span>
-                <span className="text-emerald-400 font-bold">${stats.freeMargin.toLocaleString()}</span>
-              </div>
-              <div className="w-full bg-zinc-900 h-1 mt-1">
-                <div 
-                  className="bg-blue-600 h-full" 
-                  style={{ width: `${Math.min(100, (stats.marginUsed / stats.equity) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[9px] text-zinc-600 leading-relaxed pt-1">
-                Gunakan lot yang sesuai dengan ekuitas Anda untuk menjaga Margin Level tetap di atas 500%.
-              </p>
             </div>
           </div>
         </div>

@@ -225,34 +225,31 @@ export function App() {
     <div className="min-h-screen bg-black text-white font-mono text-[11px] p-0">
       <OfflineIndicator />
       {/* Institutional Terminal Header */}
-      <header className="sticky top-0 z-40 bg-black border-b border-white px-2 py-1 flex items-center justify-between gap-2 min-h-10 overflow-x-auto scrollbar-none">
+      <header className="sticky top-0 z-40 bg-black border-b border-zinc-800 px-2 py-1 flex items-center justify-between gap-2 min-h-10">
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-6 h-6 bg-yellow-500 border border-black flex items-center justify-center font-bold text-black text-[10px]">AV</div>
-          <h1 className="text-[11px] sm:text-xs font-bold text-white tracking-widest uppercase">AstraView Terminal v2.0</h1>
-          <div className="hidden xs:flex items-center gap-1.5 text-[10px] text-yellow-400 font-mono border-l border-white pl-2">
-            <span className="animate-pulse">●</span> LIVE
-          </div>
+          <h1 className="hidden sm:block text-[11px] font-bold text-white tracking-widest uppercase">AstraView Terminal v2.5</h1>
         </div>
 
-        {/* Navigation & PWA Action Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
+        {/* Navigation - Tablet/Desktop */}
+        <nav className="hidden lg:flex items-center gap-0 border-l border-zinc-800 pl-2 overflow-x-auto scrollbar-none">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavClick(item.id as any)}
+              className={`px-3 py-1 text-[10px] uppercase tracking-wider transition-colors border-r border-zinc-800 whitespace-nowrap ${
+                activeSection === item.id
+                  ? 'bg-white text-black font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
           <UserMenu />
           <PWAInstallButton />
-          <nav className="flex items-center gap-0 overflow-x-auto scrollbar-none border-l border-white pl-1 sm:pl-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id as any)}
-                className={`px-2 py-1 text-[10px] uppercase tracking-wider transition-colors border-r border-white whitespace-nowrap ${
-                  activeSection === item.id
-                    ? 'bg-white text-black font-bold'
-                    : 'text-white hover:bg-zinc-800'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
         </div>
       </header>
 

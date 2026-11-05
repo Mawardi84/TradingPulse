@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Instrument, Candle } from '../types/market';
 import { formatInstrumentPrice } from '../utils/formatters';
+import { SocialSentimentPanel } from './SocialSentimentPanel';
+import { LSTMPredictionPanel } from './LSTMPredictionPanel';
+import { ArbitrageMonitorPanel } from './ArbitrageMonitorPanel';
 import {
   Server,
   Cpu,
@@ -34,7 +37,7 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
   selectedInstrument,
   candles,
 }) => {
-  const [activeTab, setActiveTab] = useState<'mt5' | 'backtest' | 'darkpool' | 'webhook'>('mt5');
+  const [activeTab, setActiveTab] = useState<'mt5' | 'backtest' | 'darkpool' | 'webhook' | 'sentiment' | 'lstm' | 'arbitrage'>('mt5');
 
   // MT5 Webhook Bridge State
   const [mt5Logs, setMt5Logs] = useState<string[]>([]);
@@ -158,6 +161,9 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
             { id: 'backtest', label: 'AI Backtest Lab' },
             { id: 'darkpool', label: 'Live Dark Pool & Flow' },
             { id: 'webhook', label: 'Cloud Webhooks' },
+            { id: 'sentiment', label: 'Social Sentiment' },
+            { id: 'lstm', label: 'AI LSTM Prediction' },
+            { id: 'arbitrage', label: 'Arbitrage Monitor' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -592,6 +598,27 @@ export const Phase4HubView: React.FC<Phase4HubViewProps> = ({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab 5: Social Sentiment */}
+      {activeTab === 'sentiment' && (
+        <div className="max-w-2xl">
+          <SocialSentimentPanel instrument={selectedInstrument} />
+        </div>
+      )}
+
+      {/* Tab 6: AI LSTM Price Prediction */}
+      {activeTab === 'lstm' && (
+        <div className="max-w-4xl">
+          <LSTMPredictionPanel instrument={selectedInstrument} candles={candles} />
+        </div>
+      )}
+
+      {/* Tab 7: Cross-Exchange Arbitrage Monitor */}
+      {activeTab === 'arbitrage' && (
+        <div className="max-w-4xl">
+          <ArbitrageMonitorPanel instrument={selectedInstrument} />
         </div>
       )}
     </div>

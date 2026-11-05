@@ -305,6 +305,13 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
     }
   }, [user, balance]);
 
+  const closeAllPositions = useCallback(async () => {
+    if (!user) return;
+    for (const pos of syncedPositions) {
+      await closePosition(pos);
+    }
+  }, [user, syncedPositions, closePosition]);
+
   const stats: PortfolioStats = {
     balance,
     floatingPnL: syncedPositions.reduce((acc, p) => acc + (p.pnl || 0), 0),
@@ -319,6 +326,7 @@ export const usePortfolio = (currentInstrument?: Instrument, allInstruments: Ins
     stats,
     isLoading,
     openPosition,
-    closePosition
+    closePosition,
+    closeAllPositions
   };
 };

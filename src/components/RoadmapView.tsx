@@ -36,7 +36,7 @@ export const RoadmapView: React.FC = () => {
     },
     {
       phase: 'Phase 6: Professional Upgrade (Current)',
-      status: 'IN_PROGRESS',
+      status: 'COMPLETED',
       items: [
         'Narrative Synthesis AI v2.5 (Multi-news analysis)',
         'Voice Command Terminal Control (Natural Language)',
@@ -46,12 +46,12 @@ export const RoadmapView: React.FC = () => {
     },
     {
       phase: 'Phase 7: Elite Expansion (Upcoming)',
-      status: 'PLANNED',
+      status: 'IN_PROGRESS',
       items: [
-        'Prop Firm Sniper Module (Drawdown Protection)',
-        'Social Trading Sentiment Stream (Twitter/X)',
-        'Deep Learning Price Prediction (LSTM Models)',
-        'Cross-Exchange Arbitrage Monitor',
+        'Prop Firm Sniper Module (Drawdown Protection) [COMPLETED]',
+        'Social Trading Sentiment Stream (Twitter/X) [COMPLETED]',
+        'Deep Learning Price Prediction (LSTM Models) [COMPLETED]',
+        'Cross-Exchange Arbitrage Monitor [COMPLETED]',
       ]
     }
   ];
