@@ -46,6 +46,17 @@ import {
   Wallet as WalletIcon,
   Activity as ActivityIcon,
   Mic,
+  Menu,
+  X,
+  Sliders,
+  Bot,
+  Calendar,
+  Newspaper,
+  Code2,
+  Calculator,
+  Compass,
+  FlaskConical,
+  Grid,
 } from 'lucide-react';
 import { useVoiceCommand } from './hooks/useVoiceCommand';
 
@@ -55,6 +66,8 @@ export function App() {
   const [activeSection, setActiveSection] = useState<
     'chart' | 'chat' | 'fundamental' | 'calendar' | 'macro' | 'news' | 'screener' | 'bot' | 'phase4' | 'quant' | 'portfolio' | 'system' | 'roadmap'
   >('chart');
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Chart view side tab selection
   const [chartSideTab, setChartSideTab] = useState<
@@ -86,19 +99,19 @@ export function App() {
   }, [selectedSymbol, candles, selectedInstrument, timeframe]);
 
   const navItems = [
-    { id: 'chart', label: 'Chart & Trading' },
-    { id: 'portfolio', label: 'Cloud Portfolio' },
-    { id: 'system', label: 'System Status' },
-    { id: 'chat', label: 'Chat Trading & Sinyal' },
-    { id: 'fundamental', label: 'Fundamental' },
-    { id: 'calendar', label: 'Kalender Ekonomi & FOMC' },
-    { id: 'macro', label: 'Rumus Kuantitatif Makro' },
-    { id: 'news', label: 'Berita Pasar' },
-    { id: 'screener', label: 'Screener Multi-Aset' },
-    { id: 'bot', label: 'Bot Trading MT5' },
-    { id: 'quant', label: 'Quant Script Editor' },
-    { id: 'phase4', label: 'Phase 4: Lab & Bridge' },
-    { id: 'roadmap', label: 'Roadmap' },
+    { id: 'chart', label: 'Chart & Trading', icon: LayoutDashboard, category: 'Trading' },
+    { id: 'portfolio', label: 'Cloud Portfolio', icon: WalletIcon, category: 'Trading' },
+    { id: 'screener', label: 'Screener Multi-Aset', icon: Sliders, category: 'Analisis' },
+    { id: 'fundamental', label: 'Fundamental', icon: Building2, category: 'Analisis' },
+    { id: 'calendar', label: 'Kalender & FOMC', icon: Calendar, category: 'Analisis' },
+    { id: 'macro', label: 'Rumus Kuantitatif Makro', icon: Calculator, category: 'Analisis' },
+    { id: 'news', label: 'Berita Pasar', icon: Newspaper, category: 'Informasi' },
+    { id: 'chat', label: 'Chat & Sinyal AI', icon: MessageSquare, category: 'AI & Bot' },
+    { id: 'bot', label: 'Bot Trading MT5', icon: Bot, category: 'AI & Bot' },
+    { id: 'quant', label: 'Quant Script Editor', icon: Code2, category: 'Kuantitatif' },
+    { id: 'phase4', label: 'Phase 4: Lab & Bridge', icon: FlaskConical, category: 'Kuantitatif' },
+    { id: 'system', label: 'System Status', icon: ActivityIcon, category: 'System' },
+    { id: 'roadmap', label: 'Roadmap & Docs', icon: Compass, category: 'System' },
   ];
 
   const scrollToTop = () => {
@@ -231,22 +244,48 @@ export function App() {
           <h1 className="hidden sm:block text-[11px] font-bold text-white tracking-widest uppercase">AstraView Terminal v2.5</h1>
         </div>
 
-        {/* Navigation - Tablet/Desktop */}
+        {/* Navigation - Desktop Horizontal Tabs */}
         <nav className="hidden lg:flex items-center gap-0 border-l border-zinc-800 pl-2 overflow-x-auto scrollbar-none">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id as any)}
-              className={`px-3 py-1 text-[10px] uppercase tracking-wider transition-colors border-r border-zinc-800 whitespace-nowrap ${
+              className={`px-2.5 py-1 text-[10px] uppercase tracking-wider transition-colors border-r border-zinc-800 whitespace-nowrap flex items-center gap-1.5 ${
                 activeSection === item.id
-                  ? 'bg-white text-black font-bold'
+                  ? 'bg-yellow-500 text-black font-extrabold'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              {item.label}
+              <item.icon className="w-3 h-3" />
+              <span>{item.label}</span>
             </button>
           ))}
         </nav>
+
+        {/* Navigation - Mobile & Tablet Quick Dropdown */}
+        <div className="flex lg:hidden items-center gap-1">
+          <select
+            value={activeSection}
+            onChange={(e) => handleNavClick(e.target.value as any)}
+            className="bg-zinc-900 text-yellow-400 font-bold border border-zinc-700 px-2 py-1 text-[10px] uppercase rounded-none focus:outline-none focus:border-yellow-400 max-w-[160px] sm:max-w-[220px]"
+          >
+            {navItems.map((item) => (
+              <option key={item.id} value={item.id} className="bg-zinc-950 text-white">
+                [{item.category}] {item.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="px-2 py-1 bg-yellow-500 text-black font-extrabold text-[10px] uppercase flex items-center gap-1 border border-black cursor-pointer hover:bg-yellow-400"
+            title="Buka semua 13 modul terminal"
+          >
+            <Grid className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">MODUL</span>
+          </button>
+        </div>
+
         <div className="flex items-center gap-2">
           <UserMenu />
           <PWAInstallButton />
@@ -432,6 +471,69 @@ export function App() {
           </div>
         )}
 
+        {/* Full 13-Module Mobile Navigation Modal Drawer */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 font-mono text-xs overflow-y-auto animate-in fade-in duration-200">
+            <div className="max-w-2xl w-full mx-auto space-y-5 my-auto">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-yellow-500 text-black font-bold flex items-center justify-center text-[10px]">AV</div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                    NAVIGASI MODUL TERMINAL (13)
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-1.5 bg-zinc-900 hover:bg-zinc-800 text-yellow-400 font-bold border border-zinc-700 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      handleNavClick(item.id as any);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`p-3 text-left border flex items-center gap-3 transition-all cursor-pointer ${
+                      activeSection === item.id
+                        ? 'bg-yellow-500 text-black border-yellow-400 font-extrabold shadow-lg'
+                        : 'bg-zinc-950 text-white border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-none ${activeSection === item.id ? 'bg-black text-yellow-400' : 'bg-zinc-900 text-zinc-400'}`}>
+                      <item.icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] uppercase tracking-widest text-zinc-400 font-normal">
+                        [{item.category}]
+                      </span>
+                      <span className="text-xs uppercase tracking-wider font-bold">
+                        {item.label}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-2 border-t border-zinc-900 flex justify-between items-center text-[10px] text-zinc-500">
+                <span>Pilih modul untuk langsung berpindah tampilan.</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="px-3 py-1.5 bg-zinc-900 text-zinc-300 hover:text-white uppercase font-bold border border-zinc-700 cursor-pointer"
+                >
+                  Tutup Menu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Mobile Bottom Navigation Bar */}
         <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black border-t border-white flex lg:hidden items-center justify-around py-1 pb-safe px-2">
           <button 
@@ -449,18 +551,18 @@ export function App() {
             <span className="text-[8px] uppercase">Account</span>
           </button>
           <button 
-            onClick={() => setActiveSection('news')}
-            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'news' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+            onClick={() => setActiveSection('screener')}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'screener' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
           >
-            <BarChart2 className="w-5 h-5" />
-            <span className="text-[8px] uppercase">Market</span>
+            <Sliders className="w-5 h-5" />
+            <span className="text-[8px] uppercase">Screener</span>
           </button>
           <button 
-            onClick={() => setActiveSection('system')}
-            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${activeSection === 'system' ? 'text-yellow-400 font-bold' : 'text-zinc-500'}`}
+            onClick={() => setIsMobileMenuOpen(true)}
+            className={`flex flex-col items-center gap-0.5 p-1 transition-colors ${isMobileMenuOpen ? 'text-yellow-400 font-bold' : 'text-yellow-500 hover:text-yellow-400'}`}
           >
-            <ActivityIcon className="w-5 h-5" />
-            <span className="text-[8px] uppercase">System</span>
+            <Grid className="w-5 h-5" />
+            <span className="text-[8px] uppercase font-bold">Modul (13)</span>
           </button>
         </nav>
 

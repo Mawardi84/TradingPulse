@@ -141,7 +141,7 @@ export const TradeSignalOverlay: React.FC<TradeSignalOverlayProps> = ({
 
     if (isGold) {
       // Gold Specific Trading Formula strictly anchored to current live spot price
-      const isTrendKuat = Math.abs(instrument.changePercent24h) >= 1.0 || Math.abs(technicalSummary.score) >= 30;
+      const isTrendKuat = Math.abs(technicalSummary.score) >= 20; // Strictly derived from technical indicator score magnitude
       const goldOffset = 1.20; // 1.2 USD offset for Limit orders relative to current live spot price
 
       if (signalType === 'BUY') {

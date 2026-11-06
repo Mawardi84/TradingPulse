@@ -3,13 +3,13 @@ import { Instrument, Candle, Timeframe } from '../types/market';
 import { INITIAL_INSTRUMENTS, generateHistoricalCandles } from '../data/marketData';
 import {
   marketFeedSingleton,
-  fetchRealBinanceCandles,
   TIMEFRAME_SECONDS,
   MarketTick,
 } from '../services/realTimeMarketFeed';
 import {
   fetchTradingViewCandles,
   fetchTradingViewQuote,
+  fetchTradingViewQuotes,
 } from '../services/tradingViewScraperService';
 
 export interface RecentTickInfo {
@@ -122,66 +122,59 @@ export function useRealTimeMarket(initialSymbol: string = 'BTCUSDT', initialTime
     loadCandlesForSelection(selectedSymbol, timeframe);
   }, [selectedSymbol, timeframe, loadCandlesForSelection]);
 
-  // 2. Sync Live Quotes directly from TradingView Scraping for ALL Asset Instruments (100% Single Source)
+  // 2. Sync Live Quotes directly from TradingView Scraping for ALL Asset Instruments (100% Single Source Batch)
   useEffect(() => {
     let isCancelled = false;
 
     const syncQuotes = async () => {
       if (isPausedRef.current) return;
 
-      // Single Data Source: Sync ALL instruments from TradingView Scraper
-      const symbolsToSync = Array.from(
-        new Set([...instrumentsRef.current.map((i) => i.symbol), selectedSymbol])
-      );
+      const allSymbols = instrumentsRef.current.map((i) => i.symbol);
+      const symbolsToSync = Array.from(new Set([selectedSymbol, 'XAUUSD', 'BTCUSDT', ...allSymbols]));
 
-      for (const sym of symbolsToSync) {
-        if (isCancelled) break;
-        try {
-          const tvQuote = await fetchTradingViewQuote(sym);
-          if (isCancelled || !tvQuote || tvQuote.price <= 0) continue;
+      try {
+        const quotesMap = await fetchTradingViewQuotes(symbolsToSync);
+        if (isCancelled) return;
 
-          // Update marketFeedSingleton priceCache so ticks & indicators align with live scraped TradingView price
-          marketFeedSingleton.updatePriceCache(sym, tvQuote.price);
+        const now = Date.now();
+        const updatedTicks: Record<string, RecentTickInfo> = {};
 
-          const now = Date.now();
+        setInstruments((prevList) =>
+          prevList.map((item) => {
+            const tvQuote = quotesMap[item.symbol];
+            if (!tvQuote || !tvQuote.price) return item;
 
-          setRecentTicks((rPrev) => {
-            const prevPrice = instrumentsRef.current.find((i) => i.symbol === sym)?.price || 0;
-            if (prevPrice !== tvQuote.price) {
-              return {
-                ...rPrev,
-                [sym]: {
-                  direction: tvQuote.price >= prevPrice ? 'up' : 'down',
-                  timestamp: now,
-                },
+            marketFeedSingleton.updatePriceCache(item.symbol, tvQuote.price);
+            if (item.price !== tvQuote.price) {
+              updatedTicks[item.symbol] = {
+                direction: tvQuote.price >= item.price ? 'up' : 'down',
+                timestamp: now,
               };
             }
-            return rPrev;
-          });
 
-          setInstruments((prevList) =>
-            prevList.map((item) => {
-              if (item.symbol !== sym) return item;
-              return {
-                ...item,
-                price: tvQuote.price,
-                change24h: tvQuote.change24h,
-                changePercent24h: tvQuote.changePercent24h,
-                high24h: tvQuote.high24h > 0 ? tvQuote.high24h : item.high24h,
-                low24h: tvQuote.low24h > 0 ? tvQuote.low24h : item.low24h,
-                volume24h: tvQuote.volume24h || item.volume24h,
-              };
-            })
-          );
-        } catch (err) {
-          // Ignore transient single symbol quote fetch errors
+            return {
+              ...item,
+              price: tvQuote.price,
+              change24h: tvQuote.change24h,
+              changePercent24h: tvQuote.changePercent24h,
+              high24h: tvQuote.high24h > 0 ? tvQuote.high24h : item.high24h,
+              low24h: tvQuote.low24h > 0 ? tvQuote.low24h : item.low24h,
+              volume24h: tvQuote.volume24h || item.volume24h,
+            };
+          })
+        );
+
+        if (Object.keys(updatedTicks).length > 0) {
+          setRecentTicks((prev) => ({ ...prev, ...updatedTicks }));
         }
+      } catch (err) {
+        // Ignore transient batch quote sync errors
       }
     };
 
-    // Initial sync and 5-second interval polling for 100% TradingView live scraped quotes
+    // Initial sync and 8-second interval polling for 100% TradingView live scraped quotes
     syncQuotes();
-    const intervalId = setInterval(syncQuotes, 5000);
+    const intervalId = setInterval(syncQuotes, 8000);
 
     return () => {
       isCancelled = true;

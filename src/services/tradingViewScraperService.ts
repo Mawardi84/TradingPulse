@@ -37,8 +37,9 @@ export async function fetchTradingViewCandles(
   count: number = 100
 ): Promise<{ candles: Candle[]; source: string } | null> {
   try {
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
     const res = await fetch(
-      `/api/tv/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(
+      `${baseUrl}/api/tv/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(
         timeframe
       )}&count=${count}`
     );
@@ -62,7 +63,8 @@ export async function fetchTradingViewCandles(
  */
 export async function fetchTradingViewQuote(symbol: string): Promise<TradingViewQuote | null> {
   try {
-    const res = await fetch(`/api/tv/quote?symbol=${encodeURIComponent(symbol)}`);
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
+    const res = await fetch(`${baseUrl}/api/tv/quote?symbol=${encodeURIComponent(symbol)}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.success && data.quote) {
@@ -76,11 +78,32 @@ export async function fetchTradingViewQuote(symbol: string): Promise<TradingView
 }
 
 /**
+ * Fetches batch real-time price & ticker quotes scraped directly from TradingView in one call
+ */
+export async function fetchTradingViewQuotes(symbols: string[]): Promise<Record<string, TradingViewQuote>> {
+  if (!symbols || symbols.length === 0) return {};
+  try {
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
+    const res = await fetch(`${baseUrl}/api/tv/quotes?symbols=${encodeURIComponent(symbols.join(','))}`);
+    if (!res.ok) return {};
+    const data = await res.json();
+    if (data.success && data.quotes) {
+      return data.quotes;
+    }
+    return {};
+  } catch (err) {
+    console.warn(`[TV Scraper Service] Could not fetch batch quotes:`, err);
+    return {};
+  }
+}
+
+/**
  * Searches global markets across TradingView catalog
  */
 export async function searchTradingViewMarkets(query: string): Promise<TradingViewSearchResult[]> {
   try {
-    const res = await fetch(`/api/tv/search?q=${encodeURIComponent(query)}`);
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
+    const res = await fetch(`${baseUrl}/api/tv/search?q=${encodeURIComponent(query)}`);
     if (!res.ok) return [];
     const data = await res.json();
     if (data.success && Array.isArray(data.results)) {
@@ -98,7 +121,8 @@ export async function searchTradingViewMarkets(query: string): Promise<TradingVi
  */
 export async function fetchTradingViewTA(symbol: string): Promise<any | null> {
   try {
-    const res = await fetch(`/api/tv/ta?symbol=${encodeURIComponent(symbol)}`);
+    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
+    const res = await fetch(`${baseUrl}/api/tv/ta?symbol=${encodeURIComponent(symbol)}`);
     if (!res.ok) return null;
     const data = await res.json();
     if (data.success && data.ta) {

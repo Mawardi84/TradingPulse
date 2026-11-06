@@ -1,5 +1,4 @@
-import { Candle, Instrument, Timeframe } from '../types/market';
-import { generateHistoricalCandles } from '../data/marketData';
+import { Candle, Timeframe } from '../types/market';
 
 export const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   '1m': 60,
@@ -33,63 +32,6 @@ export interface MarketTick {
 }
 
 export type TickCallback = (tick: MarketTick) => void;
-
-export interface BinanceTicker {
-  symbol: string;
-  lastPrice: string;
-  priceChange: string;
-  priceChangePercent: string;
-  highPrice: string;
-  lowPrice: string;
-  quoteVolume: string;
-}
-
-const cryptoTickerCache: { data: Record<string, BinanceTicker> | null; timestamp: number } = {
-  data: null,
-  timestamp: 0,
-};
-const CACHE_TTL_MS = 10_000;
-
-/**
- * Fetches genuine live crypto 24hr tickers from Binance REST API with 10s caching
- */
-export async function fetchLiveCryptoTickers(): Promise<Record<string, BinanceTicker>> {
-  const now = Date.now();
-  if (cryptoTickerCache.data && now - cryptoTickerCache.timestamp < CACHE_TTL_MS) {
-    return cryptoTickerCache.data;
-  }
-
-  try {
-    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-    if (!res.ok) return cryptoTickerCache.data || {};
-    const data: BinanceTicker[] = await res.json();
-    const map: Record<string, BinanceTicker> = {};
-    for (const item of data) {
-      map[item.symbol] = item;
-    }
-    cryptoTickerCache.data = map;
-    cryptoTickerCache.timestamp = now;
-    return map;
-  } catch (err) {
-    console.warn('[MarketFeed] Binance REST fetch error, will use WS or fallbacks:', err);
-    return cryptoTickerCache.data || {};
-  }
-}
-
-/**
- * Fetches real live USD exchange rates from free open exchange rate API
- */
-export async function fetchLiveForexRates(): Promise<Record<string, number>> {
-  try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD');
-    if (!res.ok) return {};
-    const data = await res.json();
-    return data.rates || {};
-  } catch (err) {
-    console.warn('[MarketFeed] Live Forex fetch error:', err);
-    return {};
-  }
-}
 
 export interface LiveFearAndGreedData {
   score: number;
@@ -136,58 +78,15 @@ export async function fetchLiveFearAndGreed(): Promise<LiveFearAndGreedData | nu
   }
 }
 
-type BinanceKlineTuple = [number, string, string, string, string, string, number, string, number, string, string, string];
-
 /**
- * Fetches real historical Kline candles directly from Binance Spot API for crypto assets
- */
-export async function fetchRealBinanceCandles(
-  binanceSymbol: string,
-  timeframe: Timeframe,
-  count: number = 72
-): Promise<Candle[] | null> {
-  try {
-    const interval = BINANCE_INTERVALS[timeframe] || '15m';
-    const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(
-      binanceSymbol
-    )}&interval=${interval}&limit=${count}`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const raw: BinanceKlineTuple[] = await res.json();
-    if (!Array.isArray(raw) || raw.length === 0) return null;
-
-    const candles: Candle[] = raw.map((k) => ({
-      time: Math.floor(k[0] / 1000),
-      open: parseFloat(k[1]),
-      high: parseFloat(k[2]),
-      low: parseFloat(k[3]),
-      close: parseFloat(k[4]),
-      volume: Math.round(parseFloat(k[5])),
-    }));
-
-    return candles;
-  } catch (err) {
-    console.warn(`[MarketFeed] Could not fetch real klines for ${binanceSymbol}:`, err);
-    return null;
-  }
-}
-
-/**
- * High-performance real-time price orchestrator:
- * - Connects to Binance WebSocket for all crypto symbols (BTC, ETH, SOL, XRP, ADA, DOGE)
- * - Calibrates Forex rates using real open exchange rate API + live interbank tick stream
- * - Streams live ticks with bid/ask spreads to subscribers
+ * Single Data Source Real-Time Price Orchestrator:
+ * - Exclusively utilizes TradingView Scraper (`fetchTradingViewQuote`) for all instrument price updates.
+ * - Zero mock data, zero synthetic random-walk interbank ticks, zero alternate source drift.
  */
 export class RealTimeMarketFeed {
-  private ws: WebSocket | null = null;
   private subscribers: Set<TickCallback> = new Set();
-  private interbankIntervalId: any = null;
   private isRunning = false;
   private priceCache: Map<string, number> = new Map();
-  private binanceSymbolMap: Map<string, string> = new Map();
-  private reconnectTimer: any = null;
-
-  private basePrices: Map<string, { baseOpen: number; initialChange: number }> = new Map();
 
   constructor() {}
 
@@ -203,7 +102,7 @@ export class RealTimeMarketFeed {
     this.priceCache.set(symbol, newPrice);
   }
 
-  private notify(tick: MarketTick) {
+  public notify(tick: MarketTick) {
     this.subscribers.forEach((cb) => {
       try {
         cb(tick);
@@ -213,179 +112,14 @@ export class RealTimeMarketFeed {
     });
   }
 
-  /**
-   * Initializes the real live feeds
-   */
-  public async start(instruments: Instrument[]) {
+  public async start(_instruments: any[]) {
     if (this.isRunning) return;
     this.isRunning = true;
-
-    // Cache symbol mappings and base open prices
-    this.binanceSymbolMap.clear();
-    this.basePrices.clear();
-    instruments.forEach((inst) => {
-      if (inst.binanceSymbol) {
-        this.binanceSymbolMap.set(inst.binanceSymbol.toUpperCase(), inst.symbol);
-      }
-      const baseOpen = inst.price - (inst.change24h || 0);
-      this.basePrices.set(inst.symbol, {
-        baseOpen: baseOpen > 0 ? baseOpen : inst.price * 0.99,
-        initialChange: inst.change24h || 0,
-      });
-    });
-
-    // 1. Initial REST Sync to populate real prices immediately
-    try {
-      const [cryptoMap, fxRates] = await Promise.all([
-        fetchLiveCryptoTickers(),
-        fetchLiveForexRates(),
-      ]);
-
-      instruments.forEach((inst) => {
-        if (inst.binanceSymbol && cryptoMap[inst.binanceSymbol]) {
-          const item = cryptoMap[inst.binanceSymbol];
-          const price = parseFloat(item.lastPrice);
-          const changePercent = parseFloat(item.priceChangePercent);
-          const change = parseFloat(item.priceChange);
-          const high = parseFloat(item.highPrice);
-          const low = parseFloat(item.lowPrice);
-          const volume = parseFloat(item.quoteVolume);
-
-          this.priceCache.set(inst.symbol, price);
-          this.notify({
-            symbol: inst.symbol,
-            price,
-            change24h: change,
-            changePercent24h: changePercent,
-            high24h: high,
-            low24h: low,
-            volume24h: volume,
-            tickDirection: 'up',
-            timestamp: Date.now(),
-          });
-        } else if (inst.category === 'forex' && inst.forexPair && Object.keys(fxRates).length > 0) {
-          const { base, quote } = inst.forexPair;
-          let calculatedPrice = inst.price;
-
-          if (quote === 'USD' && fxRates[base]) {
-            calculatedPrice = 1 / fxRates[base];
-          } else if (base === 'USD' && fxRates[quote]) {
-            calculatedPrice = fxRates[quote];
-          } else if (fxRates[base] && fxRates[quote]) {
-            calculatedPrice = fxRates[quote] / fxRates[base];
-          }
-
-          if (calculatedPrice > 0) {
-            const roundedPrice = Number(calculatedPrice.toFixed(inst.decimals));
-            this.priceCache.set(inst.symbol, roundedPrice);
-            this.notify({
-              symbol: inst.symbol,
-              price: roundedPrice,
-              change24h: inst.change24h,
-              changePercent24h: inst.changePercent24h,
-              high24h: Math.max(inst.high24h, roundedPrice),
-              low24h: Math.min(inst.low24h, roundedPrice),
-              volume24h: inst.volume24h,
-              tickDirection: roundedPrice >= inst.price ? 'up' : 'down',
-              timestamp: Date.now(),
-            });
-          }
-        }
-      });
-    } catch (err) {
-      console.warn('[MarketFeed] Initial sync error:', err);
-    }
-
-    // Single Data Source Policy: All instruments use TradingView Scraping.
-    // Disable Binance WS and synthetic interbank generators so no alternate feed corrupts TradingView quotes.
-    // this.connectBinanceWS(instruments);
-    // this.startInterbankTicks(instruments);
-  }
-
-  private connectBinanceWS(_instruments: Instrument[]) {
-    return; // Disabled for 100% TradingView single data source policy
-  }
-
-  /**
-   * Single Data Source Policy: All asset quotes are scraped from TradingView.
-   * Synthetic random walk ticks are completely disabled.
-   */
-  private startInterbankTicks(_instruments: Instrument[]) {
-    if (this.interbankIntervalId) {
-      clearInterval(this.interbankIntervalId);
-    }
-    const tickCandidates: Instrument[] = [];
-
-    this.interbankIntervalId = setInterval(() => {
-      if (!this.isRunning || tickCandidates.length === 0) return;
-
-      // Pick 2-4 active instruments per cycle to tick naturally
-      const sampleCount = Math.floor(Math.random() * 3) + 2;
-      for (let k = 0; k < sampleCount; k++) {
-        const idx = Math.floor(Math.random() * tickCandidates.length);
-        const inst = tickCandidates[idx];
-        const currentPrice = this.priceCache.get(inst.symbol) ?? inst.price;
-
-        // Realistic tick step based on asset class
-        let pipStep = 0.0001;
-        if (inst.category === 'forex') {
-          pipStep = inst.symbol.includes('JPY') ? 0.015 : inst.symbol.includes('IDR') ? 5 : 0.00012;
-        } else if (inst.category === 'commodities' || inst.symbol === 'XAUUSD') {
-          pipStep = inst.symbol.includes('XAU') ? 0.35 : inst.symbol.includes('XAG') ? 0.02 : 0.08;
-        } else if (inst.category === 'us_stocks') {
-          pipStep = 0.12;
-        } else if (inst.category === 'idx_stocks') {
-          pipStep = 10;
-        }
-
-        // Random walk with mean reversion
-        const directionFactor = Math.random() > 0.49 ? 1 : -1;
-        const delta = (Math.random() * pipStep + pipStep * 0.2) * directionFactor;
-        const newPrice = Number(Math.max(0.0001, currentPrice + delta).toFixed(inst.decimals));
-
-        if (newPrice !== currentPrice) {
-          const tickDir: 'up' | 'down' = newPrice >= currentPrice ? 'up' : 'down';
-          this.priceCache.set(inst.symbol, newPrice);
-
-          const baseInfo = this.basePrices.get(inst.symbol) || {
-            baseOpen: inst.price - inst.change24h,
-            initialChange: inst.change24h,
-          };
-          const change = newPrice - baseInfo.baseOpen;
-          const changePercent = baseInfo.baseOpen > 0 ? (change / baseInfo.baseOpen) * 100 : 0;
-
-          this.notify({
-            symbol: inst.symbol,
-            price: newPrice,
-            change24h: change,
-            changePercent24h: changePercent,
-            high24h: Math.max(inst.high24h, newPrice),
-            low24h: Math.min(inst.low24h, newPrice),
-            volume24h: inst.volume24h + Math.floor(Math.random() * 5000),
-            tickDirection: tickDir,
-            timestamp: Date.now(),
-          });
-        }
-      }
-    }, 550);
+    // 100% TradingView Single Source Policy: All price updates are driven externally by TradingView scraper quotes.
   }
 
   public stop() {
     this.isRunning = false;
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {}
-      this.ws = null;
-    }
-    if (this.interbankIntervalId) {
-      clearInterval(this.interbankIntervalId);
-      this.interbankIntervalId = null;
-    }
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
     this.subscribers.clear();
   }
 }
@@ -398,4 +132,3 @@ if (typeof import.meta !== 'undefined' && import.meta.hot) {
     marketFeedSingleton.stop();
   });
 }
-

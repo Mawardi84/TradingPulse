@@ -36,7 +36,9 @@ service cloud.firestore {
 
     function isValidSettings(data) {
       return (data.layoutConfig == null || data.layoutConfig is string) &&
-             (data.theme == null || data.theme is string);
+             (data.theme == null || data.theme is string) &&
+             (data.userId == null || data.userId is string) &&
+             (data.updatedAt == null || data.updatedAt is timestamp);
     }
 
     function isValidScript(data) {
@@ -84,10 +86,8 @@ service cloud.firestore {
       }
 
       // 5. User Settings
-      match /settings/terminal {
-        allow get: if isOwner(userId);
-        allow create, update: if isOwner(userId) && isValidSettings(incoming());
-        allow delete: if isOwner(userId);
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
       }
 
       // 6. Quant Scripts (Sub-collection)
